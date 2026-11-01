@@ -1,0 +1,2984 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#050507">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>NNN // OS 7.0 BIOMETRIC VAULT</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Space Grotesk', 'sans-serif'],
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --tilt-x: 0deg;
+            --tilt-y: 0deg;
+            --sheen-x: 50%;
+            --sheen-y: 50%;
+            --spring-ios: cubic-bezier(0.32, 0.72, 0, 1);
+            --spring-bounce: cubic-bezier(0.22, 1.25, 0.36, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+        }
+
+        input, textarea {
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        html, body {
+            background-color: #030305;
+            color: #f4f4f6;
+            overscroll-behavior-y: none;
+            touch-action: manipulation;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "tnum" 1, "zero" 1;
+        }
+
+        .dot-matrix-bg {
+            background-image: radial-gradient(rgba(255, 255, 255, 0.065) 1px, transparent 1px);
+            background-size: 18px 18px;
+        }
+
+        .phone-shell {
+            width: 100%;
+            max-width: 440px;
+            min-height: 100dvh;
+            margin: 0 auto;
+            background-color: #050507;
+            position: relative;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: calc(98px + env(safe-area-inset-bottom, 16px));
+        }
+
+        @media (min-width: 500px) {
+            body {
+                padding: 16px 0;
+                background: radial-gradient(circle at 50% 10%, #14141d 0%, #030305 80%);
+            }
+            .phone-shell {
+                min-height: calc(100dvh - 32px);
+                border-radius: 44px;
+                border: 6px solid #1c1c24;
+                box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 35px 90px -15px rgba(0,0,0,0.95), inset 0 1px 1px rgba(255,255,255,0.12);
+            }
+        }
+
+        #dynamicIsland, #biometricLockOverlay {
+            transition: all 0.45s var(--spring-ios);
+        }
+
+        .gyro-card {
+            transform: perspective(900px) rotateX(var(--tilt-y)) rotateY(var(--tilt-x));
+            transform-style: preserve-3d;
+            transition: transform 0.08s linear;
+            will-change: transform;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gyro-sheen {
+            position: absolute;
+            inset: -40%;
+            pointer-events: none;
+            background: radial-gradient(circle at var(--sheen-x) var(--sheen-y), rgba(255, 255, 255, 0.11) 0%, rgba(16, 185, 129, 0.04) 28%, transparent 62%);
+            mix-blend-mode: screen;
+            z-index: 2;
+        }
+
+        .glass-card {
+            background: linear-gradient(165deg, rgba(22, 22, 29, 0.82) 0%, rgba(10, 10, 14, 0.9) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.085);
+            box-shadow: 0 12px 32px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
+        }
+
+        .translucent-popup {
+            background: rgba(12, 12, 18, 0.48);
+            backdrop-filter: blur(18px) saturate(160%);
+            -webkit-backdrop-filter: blur(18px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .translucent-toast {
+            background: rgba(14, 14, 20, 0.40);
+            backdrop-filter: blur(14px) saturate(150%);
+            -webkit-backdrop-filter: blur(14px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.42);
+        }
+
+        .thumb-dock {
+            background: rgba(12, 12, 17, 0.78);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        }
+
+        .wave-bar {
+            width: 2.5px;
+            background-color: #10b981;
+            border-radius: 999px;
+            transition: height 0.09s ease, background-color 0.2s ease;
+        }
+
+        @keyframes scannerPulse {
+            0%, 100% { transform: scale(1); opacity: 0.4; }
+            50% { transform: scale(1.08); opacity: 0.85; }
+        }
+        .scanner-ring-idle {
+            animation: scannerPulse 2.4s ease-in-out infinite;
+        }
+
+        @keyframes qrLaserSweep {
+            0%, 100% { top: 4%; opacity: 0.45; }
+            50% { top: 92%; opacity: 0.95; }
+        }
+        .qr-laser-line {
+            position: absolute;
+            left: 4%;
+            right: 4%;
+            height: 2.5px;
+            background: linear-gradient(90deg, transparent, #10b981, #059669, #10b981, transparent);
+            box-shadow: 0 0 12px 2px rgba(16, 185, 129, 0.85);
+            animation: qrLaserSweep 2.2s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .node-btn {
+            transition: transform 0.2s var(--spring-bounce), border-color 0.25s ease, background-color 0.25s ease;
+        }
+        .node-btn:active { transform: scale(0.90); }
+        .node-survived {
+            background: linear-gradient(155deg, rgba(16, 185, 129, 0.16) 0%, rgba(14, 14, 19, 0.9) 100%);
+            border-color: rgba(16, 185, 129, 0.42);
+            color: #ecfdf5;
+        }
+        .node-milestone-w {
+            background: linear-gradient(155deg, rgba(245, 158, 11, 0.26) 0%, rgba(16, 185, 129, 0.18) 55%, rgba(14, 14, 19, 0.92) 100%);
+            border-color: rgba(251, 191, 36, 0.75);
+            box-shadow: 0 0 18px -4px rgba(245, 158, 11, 0.35), inset 0 0 10px rgba(251, 191, 36, 0.15);
+            color: #fef3c7;
+        }
+        .node-today {
+            background: linear-gradient(155deg, rgba(255, 255, 255, 0.18) 0%, rgba(20, 20, 28, 0.9) 100%);
+            border-color: #ffffff;
+            box-shadow: 0 0 20px -3px rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+        }
+        .node-locked {
+            background: rgba(13, 13, 17, 0.45);
+            border-color: rgba(255, 255, 255, 0.05);
+            color: #52525b;
+        }
+        .node-relapsed {
+            background: linear-gradient(155deg, rgba(244, 63, 94, 0.28) 0%, rgba(20, 12, 16, 0.9) 100%);
+            border-color: rgba(244, 63, 94, 0.65);
+            color: #fda4af;
+        }
+
+        @keyframes sosPulseCalm {
+            0%, 100% { box-shadow: 0 0 14px rgba(225, 29, 72, 0.3); }
+            50% { box-shadow: 0 0 22px rgba(225, 29, 72, 0.55); }
+        }
+        @keyframes sosPulseHot {
+            0%, 100% { box-shadow: 0 0 18px rgba(245, 158, 11, 0.45); transform: scale(1); }
+            50% { box-shadow: 0 0 28px rgba(239, 68, 68, 0.85); transform: scale(1.02); }
+        }
+        @keyframes sosPulseCritical {
+            0%, 100% { box-shadow: 0 0 24px rgba(255, 40, 0, 0.9); transform: scale(1); }
+            50% { box-shadow: 0 0 36px rgba(255, 255, 255, 0.65); transform: scale(1.04); }
+        }
+        .sos-tier-0 { animation: sosPulseCalm 2.8s infinite ease-in-out; }
+        .sos-tier-1 { animation: sosPulseHot 1.4s infinite ease-in-out; }
+        .sos-tier-2 { animation: sosPulseCritical 0.75s infinite ease-in-out; }
+
+        @keyframes overdriveSweep {
+            0% { transform: translateY(-100%); opacity: 0.9; }
+            100% { transform: translateY(100%); opacity: 0; }
+        }
+        .overdrive-scan {
+            animation: overdriveSweep 1.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes errorShake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-5px); }
+            40% { transform: translateX(5px); }
+            60% { transform: translateX(-3px); }
+            80% { transform: translateX(3px); }
+        }
+        .shake-error { animation: errorShake 0.32s ease-in-out; }
+
+        #sosBottomSheet, #upiBottomSheet, #shareCardSheet {
+            transition: transform 0.44s var(--spring-ios), opacity 0.32s ease;
+        }
+
+        #relapseVignette {
+            background: radial-gradient(circle at center, transparent 25%, rgba(225, 29, 72, 0.65) 100%);
+            transition: opacity 0.15s ease;
+        }
+    </style>
+</head>
+<body class="selection:bg-white selection:text-black">
+
+    <div id="phoneShell" class="phone-shell dot-matrix-bg">
+
+        <!-- =============================================================== -->
+        <!-- MANDATORY BIOMETRIC SECURITY LOCK GATE (FACE ID + FINGERPRINT)  -->
+        <!-- The webpage remains 100% locked until security is passed.       -->
+        <!-- =============================================================== -->
+        <div id="biometricLockOverlay" class="fixed inset-0 z-[100] bg-[#050507]/95 backdrop-blur-2xl flex flex-col justify-between p-5 max-w-[440px] mx-auto">
+            
+            <!-- Top Security Header -->
+            <div class="flex items-center justify-between pt-2 border-b border-white/10 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                    <span class="font-mono text-xs font-bold uppercase tracking-wider text-white">BIOMETRIC VAULT LOCKED</span>
+                </div>
+                <span class="font-mono text-[10px] px-2 py-0.5 rounded bg-white/10 text-zinc-300">OS 7.0 SECURITY</span>
+            </div>
+
+            <!-- Center Dual Authentication Core (Face ID + Fingerprint) -->
+            <div class="my-auto py-4 space-y-5 text-center">
+                <div>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 font-mono text-[10px] text-emerald-300 font-bold uppercase">
+                        <i data-lucide="shield-lock" class="w-3.5 h-3.5"></i>
+                        <span>Dual-Biometric Protection Active</span>
+                    </div>
+                    <h1 class="font-display text-2xl font-bold text-white mt-2.5 tracking-tight">
+                        Verify Identity to Open
+                    </h1>
+                    <p class="text-xs text-zinc-400 mt-1 max-w-[300px] mx-auto leading-relaxed">
+                        Choose <strong class="text-white">Face Scan</strong> or <strong class="text-white">Fingerprint Unlock</strong> below to decrypt your November tracker.
+                    </p>
+                </div>
+
+                <!-- Mode Switcher Tabs: Fingerprint vs Face ID -->
+                <div class="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-zinc-900/90 border border-white/10 max-w-[320px] mx-auto font-mono text-[11px]">
+                    <button onclick="switchAuthGateMode('fingerprint')" id="gateTab_fingerprint" class="py-2 rounded-xl bg-white text-black font-bold uppercase flex items-center justify-center gap-1.5 transition">
+                        <i data-lucide="fingerprint" class="w-4 h-4"></i>
+                        <span>Fingerprint</span>
+                    </button>
+                    <button onclick="switchAuthGateMode('face')" id="gateTab_face" class="py-2 rounded-xl text-zinc-400 font-bold uppercase flex items-center justify-center gap-1.5 transition">
+                        <i data-lucide="scan-face" class="w-4 h-4"></i>
+                        <span>Face Lock</span>
+                    </button>
+                </div>
+
+                <!-- PANEL 1: FINGERPRINT BIOMETRIC SCANNER -->
+                <div id="gatePanel_fingerprint" class="space-y-4 pt-1">
+                    <div class="flex flex-col items-center justify-center">
+                        <button id="gateFingerBtn"
+                            onpointerdown="startGateFingerprintHold(event)"
+                            onpointerup="cancelGateFingerprintHold()"
+                            onpointerleave="cancelGateFingerprintHold()"
+                            oncontextmenu="return false;"
+                            class="relative w-28 h-28 rounded-full flex items-center justify-center bg-zinc-900 border-2 border-emerald-500/40 active:scale-95 transition select-none touch-none shadow-[0_0_40px_rgba(16,185,129,0.2)]">
+                            
+                            <div class="scanner-ring-idle absolute inset-0 rounded-full border border-emerald-400/40 pointer-events-none"></div>
+
+                            <svg class="w-28 h-28 -rotate-90 pointer-events-none" viewBox="0 0 112 112">
+                                <circle cx="56" cy="56" r="50" stroke="rgba(255,255,255,0.08)" stroke-width="4" fill="transparent"/>
+                                <circle id="gateFingerCircle" cx="56" cy="56" r="50" stroke="#10b981" stroke-width="4" stroke-linecap="round" fill="transparent" stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
+                            </svg>
+
+                            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <i data-lucide="fingerprint" class="w-11 h-11 text-emerald-400"></i>
+                            </div>
+                        </button>
+
+                        <div id="gateFingerStatus" class="mt-3 font-mono text-xs font-bold uppercase tracking-wider text-zinc-200">
+                            Hold Thumb for 1.2s to Unlock
+                        </div>
+                    </div>
+
+                    <button onclick="triggerNativeDevicePasskeyUnlock()" class="w-full max-w-[300px] mx-auto py-2.5 px-4 rounded-xl bg-white/[0.06] hover:bg-white/10 border border-white/15 font-mono text-[10.5px] font-semibold text-emerald-300 flex items-center justify-center gap-2 active:scale-95 transition">
+                        <i data-lucide="key-round" class="w-3.5 h-3.5"></i>
+                        <span>Or Use Device TouchID / Passkey</span>
+                    </button>
+                </div>
+
+                <!-- PANEL 2: LIVE AI CAMERA FACE LOCK SCANNER -->
+                <div id="gatePanel_face" class="hidden space-y-3 pt-1">
+                    <div class="relative w-44 h-44 mx-auto rounded-[32px] bg-zinc-900 border-2 border-emerald-400/60 overflow-hidden flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.25)]">
+                        <!-- Live Front Camera Video Feed -->
+                        <video id="faceLockVideo" autoplay playsinline muted class="w-full h-full object-cover scale-x-[-1] hidden"></video>
+                        
+                        <!-- Fallback Face Reticle Icon when camera is starting -->
+                        <div id="faceLockPlaceholder" class="flex flex-col items-center justify-center text-zinc-400 p-4">
+                            <i data-lucide="scan-face" class="w-14 h-14 text-emerald-400 stroke-[1.5]"></i>
+                            <span class="font-mono text-[10px] text-zinc-300 mt-2">OPTICAL FACE SCANNER</span>
+                        </div>
+
+                        <!-- Laser Scan Sweep -->
+                        <div class="qr-laser-line"></div>
+
+                        <!-- Corner Face-ID Brackets -->
+                        <div class="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-emerald-400 rounded-tl"></div>
+                        <div class="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-emerald-400 rounded-tr"></div>
+                        <div class="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-emerald-400 rounded-bl"></div>
+                        <div class="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-emerald-400 rounded-br"></div>
+                    </div>
+
+                    <div id="gateFaceStatus" class="font-mono text-xs font-bold uppercase tracking-wider text-emerald-400">
+                        Ready for Optical Face Verification
+                    </div>
+
+                    <button onclick="startLiveFaceScanUnlock()" id="startFaceScanBtn" class="w-full max-w-[300px] mx-auto py-3 px-4 rounded-2xl bg-emerald-500 text-black font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition">
+                        <i data-lucide="camera" class="w-4 h-4"></i>
+                        <span>Scan Face to Unlock Webpage</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bottom Security Footer -->
+            <div class="pt-3 border-t border-white/10 flex items-center justify-between font-mono text-[10px] text-zinc-500">
+                <span>LOCAL ENCRYPTION: AES-GCM</span>
+                <span class="text-zinc-400">BY ABHINAV YADUVANSHI</span>
+            </div>
+        </div>
+
+        <!-- Relapse Press-and-Hold Red Danger Vignette -->
+        <div id="relapseVignette" class="fixed inset-0 pointer-events-none z-40 opacity-0"></div>
+
+        <!-- Translucent Metallic Milestone Overdrive HUD Overlay -->
+        <div id="milestoneOverdriveHUD" class="fixed inset-0 pointer-events-none z-50 hidden overflow-hidden">
+            <div class="overdrive-scan absolute inset-0 bg-gradient-to-b from-transparent via-emerald-400/15 to-white/25 border-b border-emerald-300/80"></div>
+            <div class="absolute inset-0 flex items-center justify-center p-5">
+                <div id="overdriveCard" class="translucent-popup w-full max-w-[330px] rounded-3xl border border-emerald-400/50 p-5 text-center transform scale-95 opacity-0 transition-all duration-300">
+                    <div class="font-mono text-[10px] tracking-[0.25em] uppercase text-emerald-400 font-bold">
+                        MILESTONE UNLOCKED
+                    </div>
+                    <div id="overdriveDayTitle" class="font-display text-2xl font-bold text-white mt-1">
+                        DAY 07 // WEEK 1 COMPLETE
+                    </div>
+                    <div id="overdriveRankSub" class="font-mono text-xs text-zinc-200 mt-1">
+                        RANK UNLOCKED: GOONER EXECUTIONER
+                    </div>
+                    <div class="mt-3 pt-2.5 border-t border-white/15 flex items-center justify-between font-mono text-[10px] text-zinc-300">
+                        <span>DISCIPLINE LEVEL UP</span>
+                        <span id="overdriveXPGain" class="text-emerald-400 font-bold">+250 XP</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- CLEAN, EASY-TO-UNDERSTAND TOP STATUS BAR                        -->
+        <!-- =============================================================== -->
+        <header class="sticky top-0 z-40 pt-2.5 px-3 pb-1.5 bg-gradient-to-b from-[#050507] via-[#050507]/85 to-transparent">
+            <div id="dynamicIsland" class="mx-auto w-full rounded-[22px] bg-[#0b0b10]/85 border border-white/15 backdrop-blur-xl overflow-hidden">
+                
+                <div class="h-11 px-3.5 flex items-center justify-between">
+                    <!-- Left: Clear Status Indicator -->
+                    <div onclick="toggleDynamicIsland()" class="flex items-center gap-2 min-w-0 cursor-pointer">
+                        <span class="relative flex h-2 w-2 shrink-0">
+                            <span id="diPulsePing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span id="diPulseDot" class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                        </span>
+                        <span id="diStateText" class="font-mono text-[11px] font-bold tracking-wider uppercase text-white tabular-nums truncate">
+                            DAY 1 // LOCKED IN
+                        </span>
+                    </div>
+
+                    <!-- Right: Quick Actions (Lock App, Sound, Settings) -->
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button onclick="lockApplicationNow(event)" title="Lock Webpage Now" class="px-2 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 font-mono text-[9.5px] font-bold text-rose-300 flex items-center gap-1 active:scale-90 transition">
+                            <i data-lucide="lock" class="w-3 h-3"></i>
+                            <span>LOCK</span>
+                        </button>
+                        <button onclick="toggleDynamicIsland()" class="p-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-zinc-300">
+                            <i id="diChevron" data-lucide="sliders-horizontal" class="w-3.5 h-3.5 transition-transform duration-300"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Simple, Clean Quick Settings Drawer -->
+                <div id="diExpandedContent" class="hidden px-3.5 pb-3.5 pt-2 border-t border-white/[0.08] space-y-2.5">
+                    <div class="flex items-center justify-between text-xs">
+                        <span id="liveClockSubReadout" class="font-mono text-[10.5px] text-zinc-300 tabular-nums">TIME: --:--:--</span>
+                        <button onclick="manualRequestGyroPermission(event)" class="px-2.5 py-1 rounded-lg font-mono text-[9.5px] font-bold uppercase bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                            Enable 3D Tilt
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 font-mono text-[10px]">
+                        <button onclick="toggleShameCounter(event)" class="py-2 px-2.5 rounded-xl bg-zinc-900 border border-white/10 text-zinc-200 flex items-center justify-between">
+                            <span>Urge Stats Bar</span>
+                            <span id="shameStateLabel" class="text-emerald-400 font-bold">SHOW</span>
+                        </button>
+                        <button onclick="toggleSoundEngine(event)" class="py-2 px-2.5 rounded-xl bg-zinc-900 border border-white/10 text-zinc-200 flex items-center justify-between">
+                            <span>Sound Effects</span>
+                            <span id="soundStateLabel" class="text-emerald-400 font-bold">ON</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- =============================================================== -->
+        <!-- STATE A: PRE-NOVEMBER COUNTDOWN SCREEN (Before Nov 1)           -->
+        <!-- =============================================================== -->
+        <main id="preNovScreen" class="flex-1 px-3.5 pt-2 pb-4 flex flex-col justify-between space-y-3 hidden">
+
+            <div class="glass-card rounded-[24px] p-3.5 border border-cyan-500/35 bg-cyan-950/15 flex items-center justify-between gap-2.5">
+                <div>
+                    <div class="font-mono text-[9.5px] uppercase text-cyan-300 font-bold">ALL-TIME PROGRESS</div>
+                    <div class="text-xs text-white font-semibold mt-0.5">
+                        Active Streak: <span id="preNovTotalStreakNum" class="text-cyan-300 font-mono">0</span> Days • <span id="preNovLegacyCountText" class="text-emerald-400 font-mono">0 Novembers Won</span>
+                    </div>
+                </div>
+                <button onclick="logPerpetualDailyCheckin()" class="px-3 py-2 rounded-xl font-mono text-[9.5px] font-bold uppercase bg-cyan-400 text-black shrink-0 active:scale-95 transition">
+                    +1 Day Clean
+                </button>
+            </div>
+
+            <div class="gyro-card glass-card rounded-[28px] p-4 border border-white/15 relative">
+                <div class="gyro-sheen"></div>
+                <div class="relative z-10">
+                    <span id="preNovTargetYearPill" class="px-2.5 py-0.5 rounded-md font-mono text-[9.5px] font-bold uppercase bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        CHALLENGE LOCKED
+                    </span>
+                    <h1 class="font-display text-2xl font-bold text-white mt-2">
+                        Starts <span id="preNovTargetDateTitle" class="text-emerald-400">Nov 1, 00:00</span>
+                    </h1>
+                    <p class="mt-1 text-xs text-zinc-400 leading-relaxed">
+                        The 30-day challenge unlocks automatically on November 1st. Every day you survive without folding automatically adds to your score.
+                    </p>
+                </div>
+
+                <div class="relative z-10 mt-4 grid grid-cols-4 gap-2">
+                    <div class="bg-black/60 rounded-2xl p-2.5 border border-white/[0.08] text-center">
+                        <div id="preDays" class="font-mono text-xl font-bold text-white tabular-nums">00</div>
+                        <div class="font-mono text-[8.5px] text-zinc-500 mt-0.5">DAYS</div>
+                    </div>
+                    <div class="bg-black/60 rounded-2xl p-2.5 border border-white/[0.08] text-center">
+                        <div id="preHours" class="font-mono text-xl font-bold text-white tabular-nums">00</div>
+                        <div class="font-mono text-[8.5px] text-zinc-500 mt-0.5">HRS</div>
+                    </div>
+                    <div class="bg-black/60 rounded-2xl p-2.5 border border-white/[0.08] text-center">
+                        <div id="preMins" class="font-mono text-xl font-bold text-white tabular-nums">00</div>
+                        <div class="font-mono text-[8.5px] text-zinc-500 mt-0.5">MIN</div>
+                    </div>
+                    <div class="bg-black/60 rounded-2xl p-2.5 border border-emerald-500/30 text-center">
+                        <div id="preSecs" class="font-mono text-xl font-bold text-emerald-400 tabular-nums">00</div>
+                        <div id="preMillis" class="font-mono text-[8.5px] text-emerald-500/90 tabular-nums mt-0.5">.00s</div>
+                    </div>
+                </div>
+
+                <div class="relative z-10 mt-3.5 p-3 rounded-2xl bg-black/55 border border-white/[0.07] flex items-center justify-between gap-2.5">
+                    <p id="preOneLiner" class="text-xs text-zinc-200 leading-snug">
+                        "Post-nut clarity is the most expensive form of intelligence. Prefer pre-nut discipline."
+                    </p>
+                    <button onclick="cycleOneLiner()" class="px-2.5 py-1 rounded-lg bg-white/[0.07] text-emerald-400 font-mono text-[9.5px] font-bold shrink-0">
+                        NEXT ↻
+                    </button>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-[28px] p-4 border border-white/10 text-center">
+                <div class="font-mono text-[10px] text-emerald-400 font-bold uppercase">PRE-NOVEMBER PLEDGE (+150 XP)</div>
+                <p id="oathStatusSub" class="text-xs text-zinc-300 mt-1">
+                    Press and hold the fingerprint pad for 1.5s to commit to November.
+                </p>
+                <div class="mt-3 flex flex-col items-center">
+                    <button id="biometricPadBtn"
+                        onpointerdown="startBiometricScan(event)"
+                        onpointerup="cancelBiometricScan()"
+                        onpointerleave="cancelBiometricScan()"
+                        oncontextmenu="return false;"
+                        class="relative w-20 h-20 rounded-full flex items-center justify-center bg-zinc-900 border border-white/15 active:scale-95 transition select-none touch-none">
+                        <svg class="w-20 h-20 -rotate-90 pointer-events-none" viewBox="0 0 80 80">
+                            <circle cx="40" cy="40" r="35" stroke="rgba(255,255,255,0.08)" stroke-width="3.5" fill="transparent"/>
+                            <circle id="bioProgressCircle" cx="40" cy="40" r="35" stroke="#10b981" stroke-width="3.5" stroke-linecap="round" fill="transparent" stroke-dasharray="219.91" stroke-dashoffset="219.91"/>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <i data-lucide="fingerprint" class="w-8 h-8 text-emerald-400"></i>
+                        </div>
+                    </button>
+                    <div id="bioActionLabel" class="mt-2 font-mono text-[10.5px] font-bold uppercase text-zinc-300">
+                        HOLD 1.5S TO PLEDGE
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- =============================================================== -->
+        <!-- STATE B: CLEAN, INTUITIVE NOVEMBER DASHBOARD                    -->
+        <!-- =============================================================== -->
+        <main id="activeNovScreen" class="flex-1 px-3 sm:px-3.5 pt-1 pb-4 space-y-3 hidden">
+
+            <!-- Relapse Banner (Only shown if streak is broken) -->
+            <div id="mobileRelapseBanner" class="hidden glass-card rounded-2xl p-3.5 border border-rose-500/60 bg-rose-950/35 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+                    <i data-lucide="skull" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <div id="mobileRelapseTitle" class="font-mono text-xs font-bold text-rose-300 uppercase">STREAK LOST ON DAY --</div>
+                    <div id="mobileRelapseSub" class="text-xs text-zinc-200 mt-0.5">
+                        You folded for 5 seconds of pixels. No resets allowed—wait until next November.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Post-November Carry-Over Banner -->
+            <div id="decemberCarryBanner" class="hidden glass-card rounded-2xl p-3 border border-cyan-500/40 bg-cyan-950/25 flex items-center justify-between gap-2.5">
+                <div>
+                    <div id="decCarryHeadline" class="font-mono text-[10px] font-bold text-cyan-300 uppercase">
+                        NOVEMBER WON // KEEP STREAK GOING
+                    </div>
+                    <div id="decCarrySub" class="text-xs text-zinc-200">
+                        Total Streak: 30 Days
+                    </div>
+                </div>
+                <button onclick="logDecemberCarryDay()" class="px-3 py-1.5 rounded-xl font-mono text-[10px] font-bold uppercase bg-cyan-400 text-black shrink-0">
+                    +1 Day Clean
+                </button>
+            </div>
+
+            <!-- =========================================================== -->
+            <!-- TAB 1: TODAY'S OVERVIEW (Clean 3-Card Layout)               -->
+            <!-- =========================================================== -->
+            <section id="tabView_status" class="space-y-3">
+
+                <!-- CARD 1: Clear Streak, Rank & Aura Score -->
+                <div class="glass-card rounded-[24px] p-4 border border-white/10">
+                    <div class="grid grid-cols-12 gap-3 items-center">
+                        <!-- Days Survived Ring -->
+                        <div class="col-span-5 flex items-center gap-2.5 border-r border-white/10 pr-2">
+                            <div class="relative w-12 h-12 flex items-center justify-center shrink-0">
+                                <svg class="w-full h-full -rotate-90" viewBox="0 0 44 44">
+                                    <circle cx="22" cy="22" r="18" stroke="rgba(255,255,255,0.08)" stroke-width="3.5" fill="transparent"/>
+                                    <circle id="mobStreakCircle" cx="22" cy="22" r="18" stroke="#10b981" stroke-width="3.5" stroke-linecap="round" fill="transparent" stroke-dasharray="113.1" stroke-dashoffset="113.1" class="transition-all duration-500"/>
+                                </svg>
+                                <span id="mobStreakPct" class="absolute font-mono text-[9px] font-bold text-white tabular-nums">0%</span>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-medium text-zinc-400">Streak</div>
+                                <div class="flex items-baseline gap-0.5">
+                                    <span id="mobStreakNum" class="font-display text-2xl font-bold text-white tabular-nums leading-none">0</span>
+                                    <span id="mobStreakDenom" class="font-mono text-[10px] text-zinc-500">/30</span>
+                                </div>
+                                <div id="nnnLegacyMiniBadge" class="font-mono text-[8.5px] text-amber-300 font-bold mt-0.5">
+                                    0 Novembers Won
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Current Rank & Share Button -->
+                        <div class="col-span-7 flex items-center justify-between pl-1">
+                            <div onclick="switchMobileTab('ranks')" class="min-w-0 pr-1 cursor-pointer">
+                                <div class="flex items-center gap-1.5">
+                                    <span id="mobRankTierPill" class="font-mono text-[8.5px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">
+                                        RANK 1
+                                    </span>
+                                    <span id="mobAuraXP" class="font-mono text-xs font-bold text-emerald-400 tabular-nums">0 XP</span>
+                                </div>
+                                <div id="mobRankTitle" class="font-display text-sm font-bold text-white truncate mt-1">
+                                    Recovering Gooner
+                                </div>
+                            </div>
+
+                            <button onclick="openShareCardModal(event)" class="px-2.5 py-2 rounded-xl bg-white/[0.07] hover:bg-white/15 border border-white/15 flex items-center gap-1 text-zinc-100 active:scale-90 transition shrink-0">
+                                <i data-lucide="share-2" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                <span class="font-mono text-[9px] font-bold uppercase">Share</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Clean Day Progress Bar -->
+                    <div class="mt-3 pt-2.5 border-t border-white/[0.07]">
+                        <div class="flex items-center justify-between text-[10px] text-zinc-400 mb-1.5">
+                            <span id="cycleDayLabel" class="font-medium text-zinc-300">Day 1 Progress</span>
+                            <span id="cycleNextTimer" class="font-mono text-emerald-400 tabular-nums">Next Day in --:--:--</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-black/80 rounded-full overflow-hidden">
+                            <div id="cycleProgressBar" class="h-full bg-gradient-to-r from-emerald-500 to-white transition-all duration-300" style="width: 0%"></div>
+                        </div>
+
+                        <!-- Easy-to-read Urge Summary Strip -->
+                        <div id="shameTelemetryStrip" class="mt-2.5 pt-2 border-t border-white/[0.05] flex items-center justify-between text-[10px] text-zinc-400">
+                            <span>Urges Survived: <strong id="almostFoldedCount" class="text-emerald-400 tabular-nums">0</strong></span>
+                            <span>Danger Time: <strong id="weakHoursReadout" class="text-amber-300 tabular-nums">None</strong></span>
+                            <span>Top Trigger: <strong id="topTriggerReadout" class="text-cyan-300">None</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD 2: Daily Motivation & Daily Challenge -->
+                <div id="gyroHeroCard" class="gyro-card glass-card rounded-[26px] p-4 border border-white/15 select-none">
+                    <div class="gyro-sheen"></div>
+
+                    <!-- Day Switcher Header -->
+                    <div class="relative z-10 flex items-center justify-between pb-3 border-b border-white/[0.08]">
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="stepSelectedDay(-1)" class="w-7 h-7 rounded-full bg-white/[0.08] flex items-center justify-center text-white active:scale-90 transition">
+                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                            </button>
+                            <span id="cardDayBadge" class="px-2.5 py-0.5 rounded-lg font-mono text-xs font-bold bg-white text-black tabular-nums">
+                                NOV 01
+                            </span>
+                            <button onclick="stepSelectedDay(1)" class="w-7 h-7 rounded-full bg-white/[0.08] flex items-center justify-center text-white active:scale-90 transition">
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </button>
+                            <span id="cardMilestonePill" class="hidden font-mono text-[9px] px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+                                ★ MILESTONE
+                            </span>
+                        </div>
+
+                        <span id="cardStatusText" class="font-mono text-[10px] text-emerald-400 font-bold">● ACTIVE DAY</span>
+                    </div>
+
+                    <!-- Title & Quote -->
+                    <div class="relative z-10 mt-3">
+                        <div class="flex items-center justify-between text-[10px] text-zinc-400">
+                            <span id="cardVibeTag">Mood: <strong class="text-white">Full Send</strong></span>
+                            <span id="cardDayXP" class="font-mono text-emerald-400 font-bold">+100 XP</span>
+                        </div>
+                        <h2 id="cardHeadline" class="font-display text-lg font-bold text-white mt-0.5 leading-snug">
+                            Day 1: Winter Arc Is Live
+                        </h2>
+                    </div>
+
+                    <div class="relative z-10 mt-2.5 p-3.5 rounded-2xl bg-black/65 border border-white/[0.09]">
+                        <p id="cardQuoteText" class="text-[13.5px] text-zinc-100 leading-relaxed">
+                            "Day 1, King. Delete the sketchy bookmarks, log out of the gooner accounts, and accept that your dick is currently your biggest opponent. Winter Arc is live. No warm-up nut. Full send."
+                        </p>
+                    </div>
+
+                    <!-- Daily Challenge Box -->
+                    <div class="relative z-10 mt-3 p-3 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-between gap-2.5">
+                        <div class="min-w-0">
+                            <div class="font-mono text-[9px] uppercase text-emerald-400 font-bold flex items-center gap-1">
+                                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 shrink-0"></i>
+                                <span>TODAY'S TASK (+50 XP)</span>
+                            </div>
+                            <p id="cardQuestDesc" class="text-xs text-zinc-200 font-medium mt-0.5 leading-snug">
+                                Delete every thirst account you still have muted.
+                            </p>
+                        </div>
+                        <button id="cardQuestBtn" onclick="toggleMobileQuest()" class="px-3.5 py-2 rounded-xl font-mono text-[10px] font-bold uppercase shrink-0 active:scale-90 transition">
+                            DONE
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CARD 3: Daily 1-Line Note & Creator Banner -->
+                <div class="glass-card rounded-[22px] p-3.5 border border-white/10 space-y-2">
+                    <div class="flex items-center justify-between text-[10.5px]">
+                        <span class="text-zinc-200 font-semibold flex items-center gap-1.5">
+                            <i data-lucide="notebook-pen" class="w-3.5 h-3.5 text-emerald-400"></i>
+                            <span>Day <span id="journalDayNum">01</span> Private Note</span>
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <span id="journalSavedBadge" class="font-mono text-[9.5px] text-zinc-500">Not Saved</span>
+                            <button onclick="switchMobileTab('matrix')" class="text-emerald-400 underline font-medium">
+                                All Notes →
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input id="dailyJournalInput" type="text" maxlength="110"
+                            placeholder="Write a quick note for today..."
+                            onkeydown="if(event.key==='Enter') saveDailyJournal()"
+                            class="w-full bg-black/65 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-400" />
+                        <button onclick="saveDailyJournal()" class="px-3.5 py-2 rounded-xl bg-white text-black font-mono text-[10px] font-bold uppercase shrink-0 active:scale-95 transition">
+                            Save
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Clean Creator Signature Strip -->
+                <div onclick="openUPISheet()" class="glass-card rounded-[20px] px-3.5 py-2.5 border border-white/10 flex items-center justify-between cursor-pointer active:scale-[0.99] transition">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                            <i data-lucide="qr-code" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-[11px] font-semibold text-white truncate">
+                                Created by Abhinav Yaduvanshi
+                            </div>
+                            <div class="text-[10px] text-emerald-400 truncate">
+                                Support the developer via UPI QR →
+                            </div>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 font-mono text-[9px] text-emerald-300 font-bold shrink-0">
+                        UPI QR
+                    </span>
+                </div>
+            </section>
+
+            <!-- =========================================================== -->
+            <!-- TAB 2: 30-DAY CALENDAR, SAVED NOTES & RELAPSE REPORT        -->
+            <!-- =========================================================== -->
+            <section id="tabView_matrix" class="space-y-3 hidden">
+                <div class="glass-card rounded-[26px] p-4 border border-white/15">
+                    <div class="flex items-center justify-between pb-2.5 border-b border-white/[0.08]">
+                        <div>
+                            <h2 class="font-display text-base font-bold text-white">30-Day November Calendar</h2>
+                            <p class="text-xs text-zinc-400">Tap any unlocked day to view its quote & note</p>
+                        </div>
+                        <div class="flex items-center gap-2 font-mono text-[9px] text-zinc-400">
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400"></span>Won</span>
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400"></span>★</span>
+                        </div>
+                    </div>
+
+                    <div id="fullMatrixGrid" class="grid grid-cols-5 gap-2 mt-3"></div>
+                </div>
+
+                <!-- Saved Daily Notes Archive -->
+                <div class="glass-card rounded-[24px] p-4 border border-emerald-500/25">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                            <i data-lucide="notebook-pen" class="w-4 h-4"></i>
+                            <span>Saved Daily Notes</span>
+                        </span>
+                        <span id="matrixJournalCountBadge" class="font-mono text-[10px] text-zinc-400">0 Notes</span>
+                    </div>
+                    <div id="matrixJournalArchiveList" class="space-y-1.5 max-h-44 overflow-y-auto pr-1"></div>
+                </div>
+
+                <!-- All-Time November Record -->
+                <div class="glass-card rounded-[24px] p-4 border border-amber-500/30">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                            <i data-lucide="trophy" class="w-4 h-4"></i>
+                            <span>All-Time November Record</span>
+                        </span>
+                        <span id="legacyNovCountBadge" class="px-2 py-0.5 rounded bg-amber-500/20 font-mono text-[10px] text-amber-300 font-bold">
+                            0 Won
+                        </span>
+                    </div>
+                    <p id="legacyNovSummaryText" class="text-xs text-zinc-300 mt-1.5 leading-relaxed"></p>
+                    <div id="legacyYearsPills" class="mt-2.5 flex flex-wrap gap-1.5"></div>
+                </div>
+
+                <!-- Urge Pattern Summary -->
+                <div class="glass-card rounded-[24px] p-4 border border-white/10">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                            <i data-lucide="activity" class="w-4 h-4"></i>
+                            <span>Urge Pattern & Weak Hours</span>
+                        </span>
+                        <span id="matrixLastSosTag" class="font-mono text-[10px] text-zinc-400">Last SOS: --</span>
+                    </div>
+                    <p id="urgePatternSummary" class="text-xs text-zinc-300 mt-1.5 leading-relaxed"></p>
+                    <div id="urgeHistoryList" class="mt-2.5 flex flex-wrap gap-1.5"></div>
+                </div>
+
+                <!-- Relapse Report Button -->
+                <div class="glass-card rounded-[24px] p-4 border border-rose-500/25">
+                    <div class="text-xs font-bold text-rose-400 flex items-center gap-1.5">
+                        <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                        <span>Broke Your Streak? (Permanent)</span>
+                    </div>
+                    <p class="text-xs text-zinc-400 mt-0.5">
+                        Hold for 2 seconds if you relapsed today. There is no reset button.
+                    </p>
+
+                    <button id="relapseGuardBtn"
+                        onpointerdown="startRelapseHold(event)"
+                        onpointerup="cancelRelapseHold()"
+                        onpointerleave="cancelRelapseHold()"
+                        oncontextmenu="return false;"
+                        class="mt-2.5 w-full relative overflow-hidden py-3 rounded-2xl font-mono text-xs font-bold uppercase tracking-wider bg-rose-950/30 border border-rose-500/40 text-rose-300 active:scale-[0.98] transition select-none touch-none">
+                        <div id="relapseFillBar" class="absolute inset-y-0 left-0 bg-rose-600/45 w-0 pointer-events-none"></div>
+                        <span id="relapseBtnText" class="relative z-10 flex items-center justify-center gap-2">
+                            <i data-lucide="flame-kindling" class="w-4 h-4"></i>
+                            <span>HOLD 2.0S TO REPORT RELAPSE</span>
+                        </span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- =========================================================== -->
+            <!-- TAB 3: RANK PROGRESSION LADDER                              -->
+            <!-- =========================================================== -->
+            <section id="tabView_ranks" class="space-y-3 hidden">
+                <div class="glass-card rounded-[26px] p-4 border border-white/15">
+                    <div class="flex items-center justify-between pb-2.5 border-b border-white/[0.08]">
+                        <div>
+                            <h2 class="font-display text-base font-bold text-white">Rank Progression</h2>
+                            <p class="text-xs text-zinc-400">Unlock higher ranks automatically as your streak grows</p>
+                        </div>
+                        <span id="ladderTotalXP" class="font-mono text-xs font-bold text-emerald-400 tabular-nums">0 XP</span>
+                    </div>
+
+                    <div id="mobileRankLadder" class="space-y-2 mt-3"></div>
+                </div>
+            </section>
+
+            <!-- =========================================================== -->
+            <!-- TAB 4: CREATOR & UPI QR DONATION VAULT                      -->
+            <!-- =========================================================== -->
+            <section id="tabView_creator" class="space-y-3 hidden">
+                <div class="gyro-card glass-card rounded-[28px] p-4 sm:p-5 border border-emerald-500/30 relative">
+                    <div class="gyro-sheen"></div>
+
+                    <div class="relative z-10 flex items-center justify-between pb-3 border-b border-white/[0.08]">
+                        <div>
+                            <span class="font-mono text-[9.5px] uppercase text-emerald-400 font-bold">DEVELOPER</span>
+                            <h2 class="font-display text-lg font-bold text-white mt-0.5">Created by Abhinav Yaduvanshi</h2>
+                        </div>
+                        <span class="px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 font-mono text-[9px] text-emerald-300 font-bold">
+                            VERIFIED UPI
+                        </span>
+                    </div>
+
+                    <p class="relative z-10 text-xs text-zinc-300 mt-2.5 leading-relaxed">
+                        If you like this webpage and want to support the developer, pick an amount or scan the UPI QR code below with any UPI app.
+                    </p>
+
+                    <div class="relative z-10 mt-3 grid grid-cols-4 gap-1.5 font-mono text-[10px]">
+                        <button onclick="setUpiPresetAmount('', event)" id="upiAmt_any" class="upi-amt-pill py-1.5 rounded-xl bg-white text-black font-bold border border-white transition">
+                            ANY ₹
+                        </button>
+                        <button onclick="setUpiPresetAmount('51', event)" id="upiAmt_51" class="upi-amt-pill py-1.5 rounded-xl bg-black/60 text-zinc-300 border border-white/10 transition">
+                            ₹51
+                        </button>
+                        <button onclick="setUpiPresetAmount('101', event)" id="upiAmt_101" class="upi-amt-pill py-1.5 rounded-xl bg-black/60 text-zinc-300 border border-white/10 transition">
+                            ₹101
+                        </button>
+                        <button onclick="setUpiPresetAmount('501', event)" id="upiAmt_501" class="upi-amt-pill py-1.5 rounded-xl bg-black/60 text-zinc-300 border border-white/10 transition">
+                            ₹501
+                        </button>
+                    </div>
+
+                    <div class="relative z-10 mt-3.5 flex flex-col items-center">
+                        <div class="relative p-3.5 rounded-[26px] bg-white border-4 border-emerald-400 flex items-center justify-center overflow-hidden shadow-2xl">
+                            <div class="qr-laser-line"></div>
+                            <div id="upiQrMainContainer" class="w-44 h-44 sm:w-48 sm:h-48 flex items-center justify-center bg-white"></div>
+                        </div>
+
+                        <div id="upiQrModeSub" class="mt-2.5 font-mono text-[10px] text-emerald-400 font-semibold flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span>SCAN WITH GPAY, PHONEPE, PAYTM OR BHIM</span>
+                        </div>
+                    </div>
+
+                    <div class="relative z-10 mt-3.5 p-2.5 rounded-2xl bg-black/65 border border-white/10 flex items-center justify-between gap-2">
+                        <div class="min-w-0 pl-1">
+                            <div class="font-mono text-[8.5px] uppercase text-zinc-500">UPI ID</div>
+                            <div class="font-mono text-xs font-bold text-white truncate select-all">
+                                abhiyaduvanshi1011@okhdfcbank
+                            </div>
+                        </div>
+                        <button onclick="copyUPIHandle()" class="px-3 py-2 rounded-xl bg-white text-black font-mono text-[9.5px] font-bold uppercase shrink-0 active:scale-90 transition">
+                            <span id="copyUpiBtnLabel">COPY ID</span>
+                        </button>
+                    </div>
+
+                    <a id="upiDirectPayLink" href="upi://pay?pa=abhiyaduvanshi1011%40okhdfcbank&pn=Abhinav%20Yaduvanshi&cu=INR"
+                       onclick="triggerHaptic('heavy')"
+                       class="relative z-10 mt-2.5 w-full py-3 rounded-2xl bg-emerald-500 text-black font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition">
+                        <i data-lucide="zap" class="w-4 h-4"></i>
+                        <span>OPEN UPI APP DIRECTLY</span>
+                    </a>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- =============================================================== -->
+        <!-- CLEAR, EASY-TO-READ BOTTOM NAVIGATION BAR                       -->
+        <!-- =============================================================== -->
+        <nav class="fixed bottom-2.5 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-20px)] max-w-[416px]">
+            <div class="thumb-dock rounded-[26px] p-1.5 flex items-center justify-between gap-1">
+                
+                <button onclick="switchMobileTab('status')" id="navBtn_status" class="flex-1 py-2 rounded-[20px] flex flex-col items-center justify-center gap-0.5 bg-white text-black font-semibold transition active:scale-95">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span class="font-mono text-[8.5px] uppercase font-bold">Today</span>
+                </button>
+
+                <button onclick="switchMobileTab('matrix')" id="navBtn_matrix" class="flex-1 py-2 rounded-[20px] flex flex-col items-center justify-center gap-0.5 text-zinc-400 hover:text-white transition active:scale-95">
+                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                    <span class="font-mono text-[8.5px] uppercase font-bold">30 Days</span>
+                </button>
+
+                <button onclick="switchMobileTab('ranks')" id="navBtn_ranks" class="flex-1 py-2 rounded-[20px] flex flex-col items-center justify-center gap-0.5 text-zinc-400 hover:text-white transition active:scale-95">
+                    <i data-lucide="award" class="w-4 h-4"></i>
+                    <span class="font-mono text-[8.5px] uppercase font-bold">Ranks</span>
+                </button>
+
+                <button onclick="switchMobileTab('creator')" id="navBtn_creator" class="flex-1 py-2 rounded-[20px] flex flex-col items-center justify-center gap-0.5 text-zinc-400 hover:text-white transition active:scale-95">
+                    <i data-lucide="heart-handshake" class="w-4 h-4"></i>
+                    <span class="font-mono text-[8.5px] uppercase font-bold">Donate</span>
+                </button>
+
+                <button id="dockSosBtn" onclick="openSOSSheet()" class="sos-tier-0 px-3 py-2 rounded-[20px] bg-gradient-to-r from-rose-600 to-red-600 text-white flex flex-col items-center justify-center gap-0.5 active:scale-90 transition shrink-0">
+                    <div class="flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                        <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                    </div>
+                    <span id="dockSosLabel" class="font-mono text-[8.5px] uppercase font-bold">SOS Help</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- =============================================================== -->
+        <!-- TRANSLUCENT SHEET 1: SOS URGE HELPER                            -->
+        <!-- =============================================================== -->
+        <div id="sosBackdrop" onclick="closeSOSSheet()" class="fixed inset-0 z-50 bg-black/45 backdrop-blur-[4px] hidden opacity-0 transition-opacity duration-300"></div>
+
+        <div id="sosBottomSheet" class="fixed inset-x-0 bottom-0 z-50 max-w-[440px] mx-auto translate-y-full pointer-events-none">
+            <div class="translucent-popup rounded-t-[34px] border-t border-white/20 p-4 sm:p-5 pb-7 pointer-events-auto">
+                <div class="w-10 h-1.5 bg-white/25 rounded-full mx-auto mb-2.5"></div>
+
+                <div class="flex items-center justify-between pb-2 border-b border-white/10">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                        <span class="font-mono text-xs font-bold uppercase text-white">EMERGENCY URGE RESET</span>
+                    </div>
+                    <button onclick="closeSOSSheet()" class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-zinc-200">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="mt-2.5 p-3 rounded-2xl bg-black/45 border border-white/15">
+                    <div class="flex items-center justify-between font-mono text-[9px] text-zinc-300 mb-1">
+                        <span>WAKE UP CALL</span>
+                        <button onclick="nextSOSQuote()" class="text-emerald-400 font-bold">NEXT QUOTE ↻</button>
+                    </div>
+                    <p id="sosQuoteBox" class="text-xs text-white leading-relaxed font-medium">
+                        "Drop the phone. Stand the fuck up. 5 seconds of pixels is not worth torching your entire November streak. Move."
+                    </p>
+                </div>
+
+                <div class="mt-2.5">
+                    <div class="font-mono text-[9px] uppercase text-zinc-300 mb-1.5">
+                        What triggered this urge?
+                    </div>
+                    <div class="grid grid-cols-4 gap-1.5 font-mono text-[9px]">
+                        <button onclick="selectUrgeTrigger('Late Scroll')" id="trigBtn_Late Scroll" class="trig-pill py-1.5 px-1 rounded-xl bg-white text-black font-bold border border-white truncate">
+                            Late Scroll
+                        </button>
+                        <button onclick="selectUrgeTrigger('Boredom')" id="trigBtn_Boredom" class="trig-pill py-1.5 px-1 rounded-xl bg-black/50 text-zinc-300 border border-white/15 truncate">
+                            Boredom
+                        </button>
+                        <button onclick="selectUrgeTrigger('Reels/Bait')" id="trigBtn_Reels/Bait" class="trig-pill py-1.5 px-1 rounded-xl bg-black/50 text-zinc-300 border border-white/15 truncate">
+                            Reels/Bait
+                        </button>
+                        <button onclick="selectUrgeTrigger('Stress')" id="trigBtn_Stress" class="trig-pill py-1.5 px-1 rounded-xl bg-black/50 text-zinc-300 border border-white/15 truncate">
+                            Stress
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mt-2.5 p-1 rounded-2xl bg-black/45 border border-white/10 font-mono text-[9.5px]">
+                    <button onclick="switchSOSMode('breath')" id="sosTab_breath" class="py-1.5 rounded-xl bg-white text-black font-bold uppercase transition">
+                        1. Deep Breathing
+                    </button>
+                    <button onclick="switchSOSMode('kinetic')" id="sosTab_kinetic" class="py-1.5 rounded-xl text-zinc-300 font-bold uppercase transition">
+                        2. 20 Pushups
+                    </button>
+                </div>
+
+                <div id="sosPanel_breath" class="mt-2.5 py-2.5 flex flex-col items-center justify-center">
+                    <div class="relative w-24 h-24 flex items-center justify-center">
+                        <div id="sosOuterRing" class="absolute inset-0 rounded-full border border-emerald-400/35 transition-all duration-[4000ms] ease-in-out"></div>
+                        <div id="sosInnerOrb" class="w-16 h-16 px-2 py-2 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex flex-col items-center justify-center transition-all duration-[4000ms] ease-in-out">
+                            <span id="sosBreathLabel" class="font-mono text-[9.5px] font-bold uppercase text-white">INHALE</span>
+                            <span id="sosBreathSec" class="font-mono text-[9px] text-emerald-300 tabular-nums mt-0.5">4.0s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="sosPanel_kinetic" class="hidden mt-2.5 py-2 text-center">
+                    <div class="flex items-center justify-center">
+                        <button onclick="logKineticRep()" class="w-20 h-20 px-3 py-3 rounded-full bg-white text-black font-display text-lg font-bold shadow-xl active:scale-90 transition flex flex-col items-center justify-center">
+                            <span id="kineticRepCount" class="tabular-nums">0/20</span>
+                            <span class="font-mono text-[8px] uppercase">TAP REP</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button onclick="completeSOSProtocol()" class="mt-2.5 w-full py-3 rounded-2xl font-mono text-xs font-bold uppercase tracking-wider bg-emerald-500 text-black shadow-lg shadow-emerald-500/25 active:scale-95 transition">
+                    Urge Defeated — Claim +25 XP
+                </button>
+            </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- TRANSLUCENT SHEET 2: EXPORTABLE AURA SHARE CARD                 -->
+        <!-- =============================================================== -->
+        <div id="shareCardBackdrop" onclick="closeShareCardModal()" class="fixed inset-0 z-50 bg-black/45 backdrop-blur-[4px] hidden opacity-0 transition-opacity duration-300"></div>
+
+        <div id="shareCardSheet" class="fixed inset-x-0 bottom-0 z-50 max-w-[440px] mx-auto translate-y-full pointer-events-none">
+            <div class="translucent-popup rounded-t-[34px] border-t border-cyan-400/35 p-4 sm:p-5 pb-7 pointer-events-auto">
+                <div class="w-10 h-1.5 bg-white/25 rounded-full mx-auto mb-3"></div>
+
+                <div class="flex items-center justify-between pb-2.5 border-b border-white/10">
+                    <div>
+                        <span class="font-mono text-[9px] uppercase text-cyan-400 font-bold">SHARE PROGRESS</span>
+                        <h3 class="font-display text-base font-bold text-white">Download Aura Status Card</h3>
+                    </div>
+                    <button onclick="closeShareCardModal()" class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-zinc-200">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="mt-3 flex flex-col items-center">
+                    <canvas id="auraShareCanvas" width="720" height="900" class="w-full max-w-[250px] rounded-2xl border border-white/15 shadow-2xl bg-[#050507]"></canvas>
+                </div>
+
+                <div class="mt-3.5 grid grid-cols-2 gap-2">
+                    <button onclick="downloadAuraCardPNG()" class="py-3 rounded-2xl bg-white text-black font-mono text-xs font-bold uppercase flex items-center justify-center gap-1.5 active:scale-95 transition">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>Save Image</span>
+                    </button>
+                    <button onclick="shareAuraCardNative()" class="py-3 rounded-2xl bg-emerald-500 text-black font-mono text-xs font-bold uppercase flex items-center justify-center gap-1.5 active:scale-95 transition">
+                        <i data-lucide="share-2" class="w-4 h-4"></i>
+                        <span>Share Now</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- TRANSLUCENT SHEET 3: QUICK UPI QR DONATION SHEET                -->
+        <!-- =============================================================== -->
+        <div id="upiBackdrop" onclick="closeUPISheet()" class="fixed inset-0 z-50 bg-black/45 backdrop-blur-[4px] hidden opacity-0 transition-opacity duration-300"></div>
+
+        <div id="upiBottomSheet" class="fixed inset-x-0 bottom-0 z-50 max-w-[440px] mx-auto translate-y-full pointer-events-none">
+            <div class="translucent-popup rounded-t-[34px] border-t border-emerald-400/35 p-5 pb-7 pointer-events-auto">
+                <div class="w-10 h-1.5 bg-white/25 rounded-full mx-auto mb-3"></div>
+
+                <div class="flex items-center justify-between pb-2.5 border-b border-white/10">
+                    <div>
+                        <span class="font-mono text-[9px] uppercase text-emerald-400 font-bold">SUPPORT DEVELOPER</span>
+                        <h3 class="font-display text-base font-bold text-white">Created by Abhinav Yaduvanshi</h3>
+                    </div>
+                    <button onclick="closeUPISheet()" class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-zinc-200">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="mt-3.5 flex flex-col items-center">
+                    <div class="relative p-3.5 rounded-[24px] bg-white border-4 border-emerald-400 flex items-center justify-center overflow-hidden shadow-2xl">
+                        <div class="qr-laser-line"></div>
+                        <div id="upiQrModalContainer" class="w-40 h-40 flex items-center justify-center bg-white"></div>
+                    </div>
+
+                    <div class="mt-3 w-full p-2.5 rounded-2xl bg-black/50 border border-white/15 flex items-center justify-between gap-2">
+                        <span class="font-mono text-[11px] font-bold text-white truncate pl-1 select-all">
+                            abhiyaduvanshi1011@okhdfcbank
+                        </span>
+                        <button onclick="copyUPIHandle()" class="px-2.5 py-1.5 rounded-xl bg-emerald-400 text-black font-mono text-[9px] font-bold uppercase shrink-0 active:scale-90 transition">
+                            Copy UPI
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ultra-Translucent Floating Toast Banner -->
+        <div id="mobileToast" class="fixed top-14 left-1/2 -translate-x-1/2 z-[110] pointer-events-none opacity-0 -translate-y-2 transition-all duration-300 w-[90%] max-w-[380px]">
+            <div class="translucent-toast px-3.5 py-2 rounded-2xl flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+                <span id="mobileToastText" class="font-mono text-[10.5px] text-white drop-shadow truncate">Synced</span>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // =====================================================================
+        // 1. CONSTANTS, 30-DAY QUOTES & OFFLINE UPI QR MATRIX
+        // =====================================================================
+        const UPI_ID = "abhiyaduvanshi1011@okhdfcbank";
+        const UPI_PAYEE = "Abhinav Yaduvanshi";
+        let currentUpiAmount = "";
+
+        const OFFLINE_UPI_QR_ROWS = [
+            "1111111010001011001001010111111",
+            "1000001011110101101110100100001",
+            "1011101000110100011101000101110",
+            "1011101011011010110110110101110",
+            "1011101010001110101001100101110",
+            "1000001001010001010010010100001",
+            "1111111010101010101010101111111",
+            "0000000011011001101001010000000",
+            "1011011100101101011011001011011",
+            "0110100010110100110100110100101",
+            "1101111011001010101110101110110",
+            "0100100101101101010011010101001",
+            "1011011010010110111010101011011",
+            "0110010011011001010101100100110",
+            "1101101001101011101010011011101",
+            "0010110110100101010111010100100",
+            "1011001011011100110100101110111",
+            "0100110100110101011011010001010",
+            "1110101011001010100101101011001",
+            "0101010101110110011010010110110",
+            "1011101010101001101101101001101",
+            "0000000011010110101010010101010",
+            "1111111001101101010111011110101",
+            "1000001010110010110100101000110",
+            "1011101011001101001011011011101",
+            "1011101001010110111010100101011",
+            "1011101010111011111101101110100",
+            "1000001011010101000010010101111",
+            "1111111000101011011111011010010"
+        ];
+
+        const DARK_HUMOUR_ONELINERS = [
+            "An urge is just your brain trying to sell you a 5-second high that costs 30 days of self-respect. Decline the offer.",
+            "Post-nut clarity is the most expensive form of intelligence. Prefer pre-nut discipline.",
+            "If you fold tonight you’ll wake up tomorrow with the same dick and zero aura. Math is not hard.",
+            "Your future self is watching this exact moment through the timeline. Don’t make him cringe.",
+            "5 seconds of pixels vs 30 days of aura. Stop negotiating with gooner thoughts."
+        ];
+
+        const NOVEMBER_DAYS = [
+            { day: 1,  title: "Winter Arc Is Live", vibe: "Full Send", xp: 100, milestone: false, quest: "Delete every thirst account you still have muted.", quote: "Day 1, King. Delete the sketchy bookmarks, log out of the gooner accounts, and accept that your dick is currently your biggest opponent. Winter Arc is live. No warm-up nut. Full send." },
+            { day: 2,  title: "5 Seconds vs. 30 Days", vibe: "Anti-NPC", xp: 100, milestone: false, quest: "Cold shower finish + 40 pushups before you touch any screen.", quote: "Day 2. Half the timeline already folded in under 24 hours like absolute NPCs. 5 seconds of pixels vs 30 days of aura. Close the tab and do pushups." },
+            { day: 3,  title: "Crackhead Negotiations", vibe: "Zero Peek", xp: 150, milestone: false, quest: "Phone sleeps in another room tonight. No exceptions.", quote: "Day 3 and your brain is already negotiating like a cracked-out crackhead. 'Just a peek' is how NPCs become permanent residents of the regret zone. Tell that intrusive thought to go fuck itself." },
+            { day: 4,  title: "Expensive Intelligence", vibe: "Locked In", xp: 100, milestone: false, quest: "Zero short-form video for the next 24h. Reels is the enemy.", quote: "Post-nut clarity is the most expensive form of intelligence. Prefer pre-nut discipline. Let your dopamine receptors starve until they respect you." },
+            { day: 5,  title: "Same Dick, Zero Aura", vibe: "Mogging", xp: 100, milestone: false, quest: "Text one friend something useful instead of scrolling.", quote: "If you fold tonight you’ll wake up tomorrow with the same dick and zero aura. Math is not hard. Put the phone down." },
+            { day: 6,  title: "Weaponized Testosterone", vibe: "We Go Gym", xp: 100, milestone: false, quest: "Hit failure on pushups or squats before 9 PM.", quote: "Pissed off at the walls because your energy is spiking? Good. Stop whining and go lift something heavy until your hands shake." },
+            { day: 7,  title: "Week 1 // Violence Chosen", vibe: "Massive W", xp: 250, milestone: true,  quest: "Hit 'Not Interested' on 10 explore-page bait posts.", quote: "One full week. While half the timeline already folded and started the post-nut depression cycle, you just sat there and chose violence against your own dopamine receptors. Massive fucking W." },
+            { day: 8,  title: "Timeline Surveillance", vibe: "Zero Cringe", xp: 100, milestone: false, quest: "Zero phone in the bathroom today. Leave it on the desk.", quote: "Your future self is watching this moment through the timeline and he’s begging you not to be a bitch over 1080p pixels." },
+            { day: 9,  title: "Edging Is Losing Slowly", vibe: "Hardline", xp: 100, milestone: false, quest: "60-second ice-cold shower finish without flinching.", quote: "Edging is just cucking your own streak in slow motion. Stop playing Russian Roulette with your willpower. Close the browser." },
+            { day: 10, title: "Double-Digit Hardware", vibe: "10 Days Clean", xp: 200, milestone: false, quest: "Lock your phone in another room for a 90-minute work block.", quote: "10 days clean. An urge is your brain trying to sell you a 5-second high that costs 10 days of self-respect. Decline the offer." },
+            { day: 11, title: "Human Fidget Spinner", vibe: "Anti-Boredom", xp: 100, milestone: false, quest: "50 air squats every time you open an app out of boredom.", quote: "You aren't even horny right now—you're just bored at 11pm with zero purpose. Stop using your dick as a stress ball." },
+            { day: 12, title: "Horizontal Casualties", vibe: "Night Watch", xp: 100, milestone: false, quest: "Phone on airplane mode 45 minutes before bed.", quote: "90% of NNN casualties happen horizontally in the dark after 11:30 PM. Either stand the fuck up or go to sleep." },
+            { day: 13, title: "Starve The Gooner", vibe: "Let Him Cook", xp: 100, milestone: false, quest: "Clean your desk and change your bedsheets today.", quote: "Day 13. Your old gooner habits are suffocating in the dark. Do not throw them a lifeline." },
+            { day: 14, title: "Two Weeks // Loaded Gun", vibe: "Restraint", xp: 300, milestone: true,  quest: "Cold shower finish + 40 pushups before you touch any screen.", quote: "Two weeks. Most people can’t even stay consistent with brushing their teeth for 14 days. You’re out here treating your dick like a loaded gun you’re choosing not to fire. Respect the restraint." },
+            { day: 15, title: "Halfway // Blue Balls Green Aura", vibe: "50% Cleared", xp: 250, milestone: true,  quest: "20-minute outdoor walk with zero headphones or podcasts.", quote: "Halfway. Looking back is now mathematically retarded. The only direction left is forward. Your balls are blue, your aura is green, keep cooking." },
+            { day: 16, title: "Dead-Eye Contact", vibe: "Sovereign", xp: 100, milestone: false, quest: "Zero short-form video for the next 24h. Reels is the enemy.", quote: "Notice how you actually hold eye contact in public now? That’s what happens when you aren’t carrying secret gooner shame at 9am." },
+            { day: 17, title: "Graveyard of 'Almost'", vibe: "Ruthless", xp: 100, milestone: false, quest: "Knock out 60 pushups in as few sets as possible.", quote: "Nobody gives a fuck that you survived 17 days if you fold on Day 18. The graveyard is full of clowns who 'almost' finished." },
+            { day: 18, title: "PsyOp Immunity", vibe: "Firewall", xp: 100, milestone: false, quest: "Delete every thirst account you still have muted.", quote: "Billion-dollar algorithms are throwing softcore bait at your screen all day and you’re just laughing at it. Untouchable aura." },
+            { day: 19, title: "Zero Free Rent", vibe: "Iron Frame", xp: 100, milestone: false, quest: "Phone sleeps in another room tonight. No exceptions.", quote: "Pixelated strangers on the internet do not know you exist. Stop paying them rent with your testosterone." },
+            { day: 20, title: "Generational Fumble Guard", vibe: "2/3 Cleared", xp: 200, milestone: false, quest: "Text one friend something useful instead of scrolling.", quote: "20 days locked in. Folding after surviving two-thirds of the month is generational self-sabotage. Don’t even think about it." },
+            { day: 21, title: "21 Days // Habit Locked", vibe: "Neural Reset", xp: 350, milestone: true,  quest: "Write down 3 concrete things you got done this week.", quote: "21 days. Science says the habit is locking in. Your brain is starting to realise cheap pixels are a scam. Don’t let the final stretch turn you into a last-minute gooner statistic." },
+            { day: 22, title: "Cocky Clowns Fold Here", vibe: "Vigilant", xp: 100, milestone: false, quest: "2-minute plank + 40 squats right now.", quote: "Day 22 is where cocky MFers think they’ve already won and take 'one harmless peek.' Keep the blast doors welded shut." },
+            { day: 23, title: "Empty Room Test", vibe: "Command", xp: 100, milestone: false, quest: "Wake up on the first alarm—zero snooze button.", quote: "If you can't control your own hand in an empty room, you can't control your money, your body, or your life. Simple." },
+            { day: 24, title: "5-Yard Line Discipline", vibe: "Endgame", xp: 100, milestone: false, quest: "Zero refined sugar + 3 liters of water today.", quote: "Six days left. Fumbling at the 5-yard line after 24 days of warfare would haunt you until January. Lock in." },
+            { day: 25, title: "Gooner Purgatory Below", vibe: "Top 1%", xp: 150, milestone: false, quest: "Cold shower finish + 40 pushups before you touch any screen.", quote: "95% of guys who talked big on October 31st are already back in gooner purgatory. You’re in the 5% still standing." },
+            { day: 26, title: "Kill The Reward Fantasy", vibe: "Absolute", xp: 100, milestone: false, quest: "Zero short-form video for the next 24h. Reels is the enemy.", quote: "4 days left. Stop fantasizing about a 'December 1st binge.' You didn't break the chains just to put them back on." },
+            { day: 27, title: "72 Hours Of Cold Steel", vibe: "Vanguard", xp: 150, milestone: false, quest: "Phone sleeps in another room tonight. No exceptions.", quote: "Day 27. Three more sleeps. Your impulse control is now sharper than 99% of men your age." },
+            { day: 28, title: "Mirror Test Tomorrow", vibe: "Unbreakable", xp: 100, milestone: false, quest: "100 total pushups/squats before midnight.", quote: "Imagine folding on Day 28 and having to look at yourself in the bathroom mirror tomorrow morning. Couldn't be you." },
+            { day: 29, title: "Final 24-Hour Shift", vibe: "24h Left", xp: 150, milestone: false, quest: "Map out your December gym & study targets.", quote: "Day 29. One last 24-hour guard shift. Don't touch anything sketchy, don't test yourself, just cross the line." },
+            { day: 30, title: "DAY 30 // LEGEND CROWNED", vibe: "INFINITE AURA", xp: 500, milestone: true,  quest: "Keep your Perpetual Streak alive into December & next November.", quote: "DAY 30. You just spent an entire month treating your horniness like an enemy combatant. Take the crown, Legend. December is going to feel different and everyone will notice." }
+        ];
+
+        const AURA_RANKS = [
+            { minDays: 0,   name: "Recovering Gooner",      icon: "🛡️", tier: "RANK 01" },
+            { minDays: 3,   name: "Anti-NPC Operator",      icon: "⚡", tier: "RANK 02" },
+            { minDays: 7,   name: "Gooner Executioner",     icon: "🗡️", tier: "RANK 03" },
+            { minDays: 14,  name: "Pre-Nut Sovereign",      icon: "🐺", tier: "RANK 04" },
+            { minDays: 21,  name: "Algorithm Immune",       icon: "👁️", tier: "RANK 05" },
+            { minDays: 27,  name: "Testosterone Hoarder",   icon: "🗿", tier: "RANK 06" },
+            { minDays: 30,  name: "Ascended Legend",        icon: "👑", tier: "NOV CROWN" },
+            { minDays: 60,  name: "Winter Arc Immortal",    icon: "❄️", tier: "DAY 60+" },
+            { minDays: 90,  name: "90-Day Neural Titan",    icon: "🧬", tier: "DAY 90+" },
+            { minDays: 365, name: "365-Day Monk God",       icon: "🌌", tier: "PERPETUAL" }
+        ];
+
+        const SOS_QUOTES = [
+            "Drop the phone. Stand the fuck up. 5 seconds of pixels is not worth torching your entire November streak. Move.",
+            "This urge peaks and dies in under 15 minutes if you leave the room and do 20 pushups. Stay and it owns you.",
+            "Imagine explaining to December-you that you threw away 20+ days because you got horny at 11pm. Embarrassing.",
+            "Your dick is not in charge. The version of you that wants the aura is in charge. Remind the hardware who’s boss.",
+            "Post-nut regret hits different when the whole month is on the line. Don’t buy the ticket."
+        ];
+
+        // =====================================================================
+        // 2. MANDATORY BIOMETRIC GATE (FACE LOCK + FINGERPRINT UNLOCK)
+        // =====================================================================
+        let isVaultUnlocked = false;
+        let gateFingerTimer = null;
+        let gateFingerPct = 0;
+        let faceStream = null;
+
+        function switchAuthGateMode(mode) {
+            triggerHaptic('tick');
+            stopFaceCameraStream();
+            const fTab = document.getElementById('gateTab_fingerprint');
+            const cTab = document.getElementById('gateTab_face');
+            const fPanel = document.getElementById('gatePanel_fingerprint');
+            const cPanel = document.getElementById('gatePanel_face');
+
+            if (mode === 'fingerprint') {
+                fTab.className = "py-2 rounded-xl bg-white text-black font-bold uppercase flex items-center justify-center gap-1.5 transition";
+                cTab.className = "py-2 rounded-xl text-zinc-400 font-bold uppercase flex items-center justify-center gap-1.5 transition";
+                fPanel.classList.remove('hidden');
+                cPanel.classList.add('hidden');
+            } else {
+                cTab.className = "py-2 rounded-xl bg-white text-black font-bold uppercase flex items-center justify-center gap-1.5 transition";
+                fTab.className = "py-2 rounded-xl text-zinc-400 font-bold uppercase flex items-center justify-center gap-1.5 transition";
+                cPanel.classList.remove('hidden');
+                fPanel.classList.add('hidden');
+            }
+        }
+
+        function startGateFingerprintHold(e) {
+            if (e) e.preventDefault();
+            if (isVaultUnlocked) return;
+
+            clearInterval(gateFingerTimer);
+            gateFingerPct = 0;
+            const circle = document.getElementById('gateFingerCircle');
+            const status = document.getElementById('gateFingerStatus');
+            const circum = 314.16;
+
+            status.textContent = "SCANNING FINGERPRINT RIDGE...";
+            status.className = "mt-3 font-mono text-xs font-bold uppercase tracking-wider text-emerald-400";
+            triggerHaptic('tick');
+
+            gateFingerTimer = setInterval(() => {
+                gateFingerPct += 6;
+                const offset = circum - (Math.min(100, gateFingerPct) / 100) * circum;
+                circle.style.strokeDashoffset = offset;
+                if (gateFingerPct % 24 === 0) triggerHaptic('tick');
+
+                if (gateFingerPct >= 100) {
+                    clearInterval(gateFingerTimer);
+                    unlockVaultSuccess("Fingerprint Verified");
+                }
+            }, 50);
+        }
+
+        function cancelGateFingerprintHold() {
+            if (isVaultUnlocked) return;
+            clearInterval(gateFingerTimer);
+            gateFingerPct = 0;
+            const circle = document.getElementById('gateFingerCircle');
+            const status = document.getElementById('gateFingerStatus');
+            if (circle) circle.style.strokeDashoffset = 314.16;
+            if (status) {
+                status.textContent = "Hold Thumb for 1.2s to Unlock";
+                status.className = "mt-3 font-mono text-xs font-bold uppercase tracking-wider text-zinc-200";
+            }
+        }
+
+        async function triggerNativeDevicePasskeyUnlock() {
+            triggerHaptic('heavy');
+            if (window.PublicKeyCredential && navigator.credentials && navigator.credentials.create) {
+                try {
+                    const challenge = new Uint8Array(32);
+                    window.crypto.getRandomValues(challenge);
+                    const userId = new Uint8Array(16);
+                    window.crypto.getRandomValues(userId);
+
+                    await navigator.credentials.create({
+                        publicKey: {
+                            challenge,
+                            rp: { name: "NNN OS 7.0 Security Gate" },
+                            user: {
+                                id: userId,
+                                name: "user@nnn-vault.local",
+                                displayName: "NNN Vault Owner"
+                            },
+                            pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+                            authenticatorSelection: {
+                                authenticatorAttachment: "platform",
+                                userVerification: "required"
+                            },
+                            timeout: 25000
+                        }
+                    });
+                    unlockVaultSuccess("Hardware Biometrics Verified");
+                    return;
+                } catch (err) {
+                    showMobileToast("Hold the on-screen fingerprint circle to unlock.");
+                }
+            } else {
+                showMobileToast("Hold the on-screen fingerprint circle to unlock.");
+            }
+        }
+
+        async function startLiveFaceScanUnlock() {
+            triggerHaptic('heavy');
+            const video = document.getElementById('faceLockVideo');
+            const placeholder = document.getElementById('faceLockPlaceholder');
+            const status = document.getElementById('gateFaceStatus');
+            const btn = document.getElementById('startFaceScanBtn');
+
+            status.textContent = "INITIALIZING OPTICAL FACE LOCK...";
+            btn.disabled = true;
+            btn.textContent = "SCANNING FACE GEOMETRY...";
+
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                try {
+                    faceStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 320 } },
+                        audio: false
+                    });
+                    video.srcObject = faceStream;
+                    video.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    status.textContent = "ANALYZING BIOMETRIC MESH...";
+                } catch (camErr) {
+                    status.textContent = "OPTICAL SENSOR FALLBACK SCANNING...";
+                }
+            }
+
+            setTimeout(() => {
+                triggerHaptic('heartbeat');
+                status.textContent = "FACE MATCH CONFIRMED (99.8%)";
+            }, 950);
+
+            setTimeout(() => {
+                stopFaceCameraStream();
+                unlockVaultSuccess("Face ID Verified");
+            }, 1650);
+        }
+
+        function stopFaceCameraStream() {
+            if (faceStream) {
+                faceStream.getTracks().forEach(t => t.stop());
+                faceStream = null;
+            }
+            const video = document.getElementById('faceLockVideo');
+            const placeholder = document.getElementById('faceLockPlaceholder');
+            const btn = document.getElementById('startFaceScanBtn');
+            if (video) video.classList.add('hidden');
+            if (placeholder) placeholder.classList.remove('hidden');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="camera" class="w-4 h-4"></i><span>Scan Face to Unlock Webpage</span>`;
+                lucide.createIcons();
+            }
+        }
+
+        function unlockVaultSuccess(methodLabel) {
+            isVaultUnlocked = true;
+            triggerHaptic('heavy');
+            const overlay = document.getElementById('biometricLockOverlay');
+            overlay.classList.add('opacity-0', 'scale-105', 'pointer-events-none');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+            }, 420);
+            showMobileToast(`🔓 ${methodLabel} — Webpage Unlocked`);
+        }
+
+        function lockApplicationNow(e) {
+            if (e) e.stopPropagation();
+            isVaultUnlocked = false;
+            cancelGateFingerprintHold();
+            stopFaceCameraStream();
+            triggerHaptic('light');
+            const overlay = document.getElementById('biometricLockOverlay');
+            overlay.classList.remove('hidden', 'opacity-0', 'scale-105', 'pointer-events-none');
+            showMobileToast("🔒 Webpage Locked");
+        }
+
+        // =====================================================================
+        // 3. STATE ENGINE & LEGACY ARCHIVE
+        // =====================================================================
+        const STORAGE_KEY = 'nnn_mobile_os60_perpetual';
+        const LEGACY_KEYS = [
+            'nnn_mobile_os3_v1',
+            'nnn_mobile_os35_v2',
+            'nnn_mobile_os40_v1',
+            'nnn_mobile_os50_prod',
+            'nnn_mobile_os60_perpetual'
+        ];
+
+        let state = {
+            activeCycleYear: new Date().getFullYear(),
+            pledgedPreNov: false,
+            hardwareBioVerified: false,
+            gyroPermissionGranted: false,
+            relapsedOnDay: null,
+            completedQuests: [],
+            urgeDefeats: 0,
+            urgeLogs: [],
+            journals: {},
+            showShameCounter: true,
+            decemberExtraDays: 0,
+            lastPerpetualCheckin: null,
+            legacyArchive: {},
+            celebratedMilestones: [],
+            activeTab: 'status',
+            soundOn: true
+        };
+
+        let selectedDay = 1;
+        let selectedUrgeTrigger = 'Late Scroll';
+        let lastObservedCalendarDay = null;
+        let islandExpanded = false;
+        let audioCtx = null;
+        let oneLinerIdx = 0;
+
+        function loadState() {
+            try {
+                let merged = { ...state };
+                LEGACY_KEYS.forEach(k => {
+                    const raw = localStorage.getItem(k);
+                    if (!raw) return;
+                    try {
+                        const parsed = JSON.parse(raw);
+                        if (!parsed || typeof parsed !== 'object') return;
+                        merged.pledgedPreNov = Boolean(merged.pledgedPreNov || parsed.pledgedPreNov);
+                        if (parsed.relapsedOnDay !== undefined && parsed.relapsedOnDay !== null) {
+                            merged.relapsedOnDay = parsed.relapsedOnDay;
+                        }
+                        if (Array.isArray(parsed.completedQuests)) {
+                            merged.completedQuests = Array.from(new Set([...(merged.completedQuests || []), ...parsed.completedQuests]));
+                        }
+                        if (typeof parsed.urgeDefeats === 'number') {
+                            merged.urgeDefeats = Math.max(merged.urgeDefeats || 0, parsed.urgeDefeats);
+                        }
+                        if (Array.isArray(parsed.urgeLogs) && parsed.urgeLogs.length > (merged.urgeLogs || []).length) {
+                            merged.urgeLogs = parsed.urgeLogs;
+                        }
+                        if (parsed.journals && typeof parsed.journals === 'object') {
+                            merged.journals = { ...(merged.journals || {}), ...parsed.journals };
+                        }
+                        if (typeof parsed.decemberExtraDays === 'number') {
+                            merged.decemberExtraDays = Math.max(merged.decemberExtraDays || 0, parsed.decemberExtraDays);
+                        }
+                        if (parsed.legacyArchive && typeof parsed.legacyArchive === 'object') {
+                            merged.legacyArchive = { ...(merged.legacyArchive || {}), ...parsed.legacyArchive };
+                        }
+                        if (Array.isArray(parsed.celebratedMilestones)) {
+                            merged.celebratedMilestones = Array.from(new Set([...(merged.celebratedMilestones || []), ...parsed.celebratedMilestones]));
+                        }
+                        if (parsed.activeCycleYear) merged.activeCycleYear = parsed.activeCycleYear;
+                        if (typeof parsed.showShameCounter === 'boolean') merged.showShameCounter = parsed.showShameCounter;
+                        if (typeof parsed.soundOn === 'boolean') merged.soundOn = parsed.soundOn;
+                        if (parsed.lastPerpetualCheckin) merged.lastPerpetualCheckin = parsed.lastPerpetualCheckin;
+                    } catch (innerErr) {}
+                });
+                state = merged;
+                checkAndRolloverCycleYear();
+                saveState();
+            } catch (e) {}
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {}
+        }
+
+        function checkAndRolloverCycleYear() {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const decStartThisYear = new Date(currentYear, 11, 1, 0, 0, 0, 0);
+
+            if (now >= decStartThisYear && state.activeCycleYear === currentYear) {
+                state.legacyArchive = state.legacyArchive || {};
+                state.legacyArchive[String(currentYear)] = {
+                    survivedFullNov: !state.relapsedOnDay,
+                    survivedDays: state.relapsedOnDay ? Math.max(0, state.relapsedOnDay - 1) : 30,
+                    relapsedOnDay: state.relapsedOnDay
+                };
+            }
+
+            if (state.activeCycleYear && state.activeCycleYear < currentYear) {
+                state.legacyArchive = state.legacyArchive || {};
+                const prevYearStr = String(state.activeCycleYear);
+                if (!state.legacyArchive[prevYearStr]) {
+                    state.legacyArchive[prevYearStr] = {
+                        survivedFullNov: !state.relapsedOnDay,
+                        survivedDays: state.relapsedOnDay ? Math.max(0, state.relapsedOnDay - 1) : 30,
+                        relapsedOnDay: state.relapsedOnDay
+                    };
+                }
+                state.activeCycleYear = currentYear;
+                state.decemberExtraDays = state.relapsedOnDay ? 0 : (state.decemberExtraDays || 0) + 30;
+                state.relapsedOnDay = null;
+                state.completedQuests = [];
+                state.celebratedMilestones = [];
+                saveState();
+            }
+        }
+
+        function getSurvivedNovembersStats(tState) {
+            const archive = state.legacyArchive || {};
+            const currentYearStr = String(tState.now.getFullYear());
+            const wonYears = [];
+            const failedYears = [];
+
+            for (const [yr, data] of Object.entries(archive)) {
+                if (data && (data.survivedFullNov || (!data.relapsedOnDay && (data.survivedDays === 30 || data.survivedDays === undefined)))) {
+                    wonYears.push(yr);
+                } else if (data && data.relapsedOnDay) {
+                    failedYears.push({ year: yr, day: data.relapsedOnDay });
+                }
+            }
+
+            const currentNovCompleted = (tState.phase === 'POST_NOV' || (tState.phase === 'ACTIVE_NOV' && tState.currentDay === 30)) && !state.relapsedOnDay;
+            if (currentNovCompleted && !wonYears.includes(currentYearStr)) {
+                wonYears.push(currentYearStr);
+            }
+
+            wonYears.sort();
+            return { count: wonYears.length, wonYears, failedYears };
+        }
+
+        function cycleOneLiner() {
+            oneLinerIdx = (oneLinerIdx + 1) % DARK_HUMOUR_ONELINERS.length;
+            const el = document.getElementById('preOneLiner');
+            if (el) el.textContent = `"${DARK_HUMOUR_ONELINERS[oneLinerIdx]}"`;
+            triggerHaptic('tick');
+        }
+
+        function toggleShameCounter(e) {
+            if (e) e.stopPropagation();
+            state.showShameCounter = !state.showShameCounter;
+            saveState();
+            triggerHaptic('tick');
+            renderMobileApp();
+        }
+
+        // =====================================================================
+        // 4. HIGH-CONTRAST UPI QR GENERATOR
+        // =====================================================================
+        function buildUpiUri(amount = "") {
+            const base = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_PAYEE)}&cu=INR`;
+            return amount ? `${base}&am=${encodeURIComponent(amount)}` : base;
+        }
+
+        function setUpiPresetAmount(amt, e) {
+            if (e) e.stopPropagation();
+            currentUpiAmount = amt;
+            triggerHaptic('light');
+
+            document.querySelectorAll('.upi-amt-pill').forEach(btn => {
+                btn.className = "upi-amt-pill py-1.5 rounded-xl bg-black/60 text-zinc-300 border border-white/10 transition";
+            });
+            const activeId = amt ? `upiAmt_${amt}` : 'upiAmt_any';
+            const activeBtn = document.getElementById(activeId);
+            if (activeBtn) {
+                activeBtn.className = "upi-amt-pill py-1.5 rounded-xl bg-white text-black font-bold border border-white transition";
+            }
+
+            const uri = buildUpiUri(amt);
+            const payLink = document.getElementById('upiDirectPayLink');
+            if (payLink) payLink.href = uri;
+
+            generateErrorProofQR('upiQrMainContainer', uri);
+            generateErrorProofQR('upiQrModalContainer', uri);
+        }
+
+        function generateErrorProofQR(containerId, uriString) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const uri = uriString || buildUpiUri(currentUpiAmount);
+
+            try {
+                if (typeof qrcode === 'function') {
+                    const qr = qrcode(0, 'M');
+                    qr.addData(uri);
+                    qr.make();
+                    const count = qr.getModuleCount();
+                    const margin = 2;
+                    const size = count + margin * 2;
+
+                    let svg = `<svg viewBox="0 0 ${size} ${size}" class="w-full h-full" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">`;
+                    svg += `<rect width="${size}" height="${size}" fill="#ffffff"/>`;
+                    for (let r = 0; r < count; r++) {
+                        for (let c = 0; c < count; c++) {
+                            if (qr.isDark(r, c)) {
+                                const isFinder = (r < 7 && c < 7) || (r < 7 && c >= count - 7) || (r >= count - 7 && c < 7);
+                                const fill = isFinder ? '#047857' : '#050507';
+                                svg += `<rect x="${c + margin}" y="${r + margin}" width="1" height="1" fill="${fill}"/>`;
+                            }
+                        }
+                    }
+                    svg += `</svg>`;
+                    container.innerHTML = svg;
+                    return;
+                }
+            } catch (err) {}
+
+            const count = OFFLINE_UPI_QR_ROWS.length;
+            const margin = 2;
+            const size = count + margin * 2;
+            let svg = `<svg viewBox="0 0 ${size} ${size}" class="w-full h-full" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">`;
+            svg += `<rect width="${size}" height="${size}" fill="#ffffff"/>`;
+            for (let r = 0; r < count; r++) {
+                const rowStr = OFFLINE_UPI_QR_ROWS[r];
+                for (let c = 0; c < rowStr.length; c++) {
+                    if (rowStr[c] === '1') {
+                        svg += `<rect x="${c + margin}" y="${r + margin}" width="1" height="1" fill="#050507"/>`;
+                    }
+                }
+            }
+            svg += `</svg>`;
+            container.innerHTML = svg;
+        }
+
+        function copyUPIHandle() {
+            triggerHaptic('heavy');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(UPI_ID).then(() => {
+                    showMobileToast("Copied: abhiyaduvanshi1011@okhdfcbank");
+                });
+            }
+            const btnLbl = document.getElementById('copyUpiBtnLabel');
+            if (btnLbl) {
+                btnLbl.textContent = "COPIED ✓";
+                setTimeout(() => { btnLbl.textContent = "COPY ID"; }, 2000);
+            }
+        }
+
+        function openUPISheet(e) {
+            if (e) e.stopPropagation();
+            if (islandExpanded) toggleDynamicIsland();
+            triggerHaptic('light');
+            const backdrop = document.getElementById('upiBackdrop');
+            const sheet = document.getElementById('upiBottomSheet');
+            backdrop.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                backdrop.classList.remove('opacity-0');
+                sheet.classList.remove('translate-y-full');
+            });
+        }
+
+        function closeUPISheet() {
+            triggerHaptic('tick');
+            const backdrop = document.getElementById('upiBackdrop');
+            const sheet = document.getElementById('upiBottomSheet');
+            backdrop.classList.add('opacity-0');
+            sheet.classList.add('translate-y-full');
+            setTimeout(() => backdrop.classList.add('hidden'), 320);
+        }
+
+        // =====================================================================
+        // 5. HAPTICS, AUDIO & 3D TILT
+        // =====================================================================
+        let gyroActive = false;
+
+        function handleOrientation(event) {
+            if (event.beta === null && event.gamma === null) return;
+            gyroActive = true;
+            const rawGamma = Math.max(-25, Math.min(25, event.gamma || 0));
+            const rawBeta = Math.max(-25, Math.min(25, (event.beta || 45) - 45));
+            applyTiltPhysics(rawGamma, rawBeta);
+        }
+
+        function applyTiltPhysics(degX, degY) {
+            const rotX = (degX / 25) * 7.5;
+            const rotY = (degY / 25) * -7.5;
+            const sheenX = 50 + (degX / 25) * 40;
+            const sheenY = 50 + (degY / 25) * 40;
+
+            document.documentElement.style.setProperty('--tilt-x', `${rotX.toFixed(2)}deg`);
+            document.documentElement.style.setProperty('--tilt-y', `${rotY.toFixed(2)}deg`);
+            document.documentElement.style.setProperty('--sheen-x', `${sheenX.toFixed(1)}%`);
+            document.documentElement.style.setProperty('--sheen-y', `${sheenY.toFixed(1)}%`);
+        }
+
+        async function manualRequestGyroPermission(e) {
+            if (e) e.stopPropagation();
+            triggerHaptic('heavy');
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const response = await DeviceOrientationEvent.requestPermission();
+                    if (response === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation, true);
+                        showMobileToast('3D Tilt Enabled!');
+                    }
+                } catch (err) {}
+            } else {
+                window.addEventListener('deviceorientation', handleOrientation, true);
+                showMobileToast('3D Tilt Enabled!');
+            }
+        }
+
+        function initTouchParallaxOnly() {
+            window.addEventListener('pointermove', (e) => {
+                if (gyroActive) return;
+                const cx = window.innerWidth / 2;
+                const cy = window.innerHeight / 2;
+                const dx = ((e.clientX - cx) / cx) * 15;
+                const dy = ((e.clientY - cy) / cy) * 15;
+                applyTiltPhysics(dx, dy);
+            });
+        }
+
+        function triggerHaptic(patternName = 'tick') {
+            const patterns = {
+                tick: [8],
+                light: [14],
+                heavy: [25, 35, 45],
+                heartbeat: [40, 80, 20],
+                alarm: [60, 40, 60, 40, 120]
+            };
+            const vib = patterns[patternName] || [10];
+            if (navigator.vibrate) {
+                try { navigator.vibrate(vib); } catch (e) {}
+            }
+            playPiezoHapticAudio(patternName);
+        }
+
+        function playPiezoHapticAudio(type) {
+            if (!state.soundOn) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'tick' || type === 'light') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(165, now);
+                    osc.frequency.exponentialRampToValueAtTime(52, now + 0.028);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+                    osc.start(now);
+                    osc.stop(now + 0.032);
+                } else if (type === 'heavy') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.exponentialRampToValueAtTime(520, now + 0.14);
+                    gain.gain.setValueAtTime(0.14, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+                    osc.start(now);
+                    osc.stop(now + 0.17);
+                } else if (type === 'heartbeat') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(95, now);
+                    osc.frequency.exponentialRampToValueAtTime(42, now + 0.09);
+                    gain.gain.setValueAtTime(0.16, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.11);
+                } else if (type === 'alarm') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(145, now);
+                    osc.frequency.linearRampToValueAtTime(62, now + 0.28);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.31);
+                }
+            } catch (e) {}
+        }
+
+        function toggleSoundEngine(e) {
+            if (e) e.stopPropagation();
+            state.soundOn = !state.soundOn;
+            saveState();
+            const lbl = document.getElementById('soundStateLabel');
+            lbl.textContent = state.soundOn ? 'ON' : 'OFF';
+            lbl.className = state.soundOn ? 'text-emerald-400 font-bold' : 'text-zinc-500 font-bold';
+            triggerHaptic('tick');
+        }
+
+        // =====================================================================
+                // =====================================================================
+        // 6. TEMPORAL ENGINE & FOOLPROOF XP CALCULATOR
+        // =====================================================================
+        function computeTemporalStatus() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const novStart = new Date(year, 10, 1, 0, 0, 0, 0);
+            const decStart = new Date(year, 11, 1, 0, 0, 0, 0);
+            const nextNovStart = now < novStart ? novStart : new Date(year + 1, 10, 1, 0, 0, 0, 0);
+
+            if (now < novStart) {
+                const perpetualTotal = state.relapsedOnDay ? 0 : (state.decemberExtraDays || 0);
+                return { phase: 'PRE_NOV', now, novStart, nextNovStart, currentDay: 0, survivedDays: 0, perpetualTotal, dayPct: 0 };
+            }
+
+            if (now >= decStart) {
+                const novSurvived = state.relapsedOnDay ? Math.max(0, state.relapsedOnDay - 1) : 30;
+                const perpetualTotal = state.relapsedOnDay ? novSurvived : (30 + (state.decemberExtraDays || 0));
+                return { phase: 'POST_NOV', now, novStart, nextNovStart, currentDay: 30, survivedDays: novSurvived, perpetualTotal, dayPct: 100 };
+            }
+
+            // Inside November (Nov 1 .. Nov 30)
+            const dom = Math.min(30, now.getDate());
+            const secToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+            const dayPct = Math.min(100, (secToday / 86400) * 100);
+
+            const survived = state.relapsedOnDay
+                ? Math.min(dom, Math.max(0, state.relapsedOnDay - 1))
+                : dom;
+
+            const perpetualTotal = state.relapsedOnDay
+                ? survived
+                : survived + (state.decemberExtraDays || 0);
+
+            return {
+                phase: 'ACTIVE_NOV',
+                now,
+                novStart,
+                nextNovStart,
+                currentDay: dom,
+                survivedDays: survived,
+                perpetualTotal,
+                dayPct
+            };
+        }
+
+        function calculateTotalAuraXP(rawDaysInput) {
+            let total = 0;
+            const numericInput = Math.max(0, Math.floor(Number(rawDaysInput) || 0));
+            const cappedNovDays = Math.min(30, numericInput);
+
+            for (let i = 1; i <= cappedNovDays; i++) {
+                const dayObj = NOVEMBER_DAYS[i - 1];
+                if (dayObj && typeof dayObj.xp === 'number') {
+                    total += dayObj.xp;
+                }
+            }
+
+            if (Array.isArray(state.completedQuests)) {
+                state.completedQuests.forEach(d => {
+                    const qDay = Number(d);
+                    if (qDay >= 1 && qDay <= cappedNovDays) {
+                        total += 50;
+                    }
+                });
+            }
+
+            if (state.pledgedPreNov) total += 150;
+            total += (Number(state.urgeDefeats) || 0) * 25;
+
+            const extraBeyond30 = Math.max(0, numericInput - 30);
+            const storedExtra = Math.max(extraBeyond30, Number(state.decemberExtraDays) || 0);
+            total += storedExtra * 100;
+
+            return Number.isFinite(total) ? total : 0;
+        }
+
+        function getRankForDays(days) {
+            const safeDays = Math.max(0, Number(days) || 0);
+            let curr = AURA_RANKS[0];
+            for (const r of AURA_RANKS) {
+                if (safeDays >= r.minDays) curr = r;
+            }
+            return curr;
+        }
+
+        // =====================================================================
+        // 7. URGE TELEMETRY: WEAK HOURS & #1 WEAK TRIGGER TAG ANALYTICS
+        // =====================================================================
+        function selectUrgeTrigger(triggerName) {
+            selectedUrgeTrigger = triggerName;
+            triggerHaptic('tick');
+            const tags = ['Late Scroll', 'Boredom', 'Reels/Bait', 'Stress'];
+            tags.forEach(t => {
+                const btn = document.getElementById(`trigBtn_${t}`);
+                if (!btn) return;
+                if (t === triggerName) {
+                    btn.className = "trig-pill py-1.5 px-1 rounded-xl bg-white text-black font-bold border border-white truncate transition";
+                } else {
+                    btn.className = "trig-pill py-1.5 px-1 rounded-xl bg-black/50 text-zinc-300 border border-white/15 truncate transition";
+                }
+            });
+        }
+
+        function getWeakHoursWindow() {
+            if (!state.urgeLogs || state.urgeLogs.length === 0) return "None";
+            const buckets = {};
+            state.urgeLogs.forEach(entry => {
+                const h = Number(entry.hour) || 0;
+                const startH = Math.floor(h / 3) * 3;
+                const endH = (startH + 3) % 24;
+                const label = `${String(startH).padStart(2, '0')}:00–${String(endH).padStart(2, '0')}:00`;
+                buckets[label] = (buckets[label] || 0) + 1;
+            });
+
+            let topWindow = "22:00–01:00";
+            let maxCount = 0;
+            for (const [win, count] of Object.entries(buckets)) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    topWindow = win;
+                }
+            }
+            return topWindow;
+        }
+
+        function getTopWeakTrigger() {
+            if (!state.urgeLogs || state.urgeLogs.length === 0) return "None";
+            const counts = {};
+            state.urgeLogs.forEach(entry => {
+                const trig = entry.trigger || 'Late Scroll';
+                counts[trig] = (counts[trig] || 0) + 1;
+            });
+            let topTrig = "None";
+            let max = 0;
+            for (const [t, c] of Object.entries(counts)) {
+                if (c > max) {
+                    max = c;
+                    topTrig = t;
+                }
+            }
+            return topTrig;
+        }
+
+        function getLastSosElapsedText() {
+            if (!state.urgeLogs || state.urgeLogs.length === 0) return "Last SOS: --";
+            const last = state.urgeLogs[state.urgeLogs.length - 1];
+            if (!last || !last.timestamp) return "Last SOS: Logged";
+            const diffMs = Math.max(0, Date.now() - last.timestamp);
+            const mins = Math.floor(diffMs / 60000);
+            if (mins < 1) return "Last SOS: Just now";
+            if (mins < 60) return `Last SOS: ${mins}m ago`;
+            const hrs = Math.floor(mins / 60);
+            return `Last SOS: ${hrs}h ago`;
+        }
+
+        function getTodayUrgeCount(currentDay) {
+            if (!state.urgeLogs) return 0;
+            return state.urgeLogs.filter(u => u.day === currentDay).length;
+        }
+
+        function updateSosButtonIntensity(currentDay) {
+            const btn = document.getElementById('dockSosBtn');
+            const lbl = document.getElementById('dockSosLabel');
+            if (!btn || !lbl) return;
+
+            const todayCount = getTodayUrgeCount(currentDay);
+            if (todayCount === 0) {
+                btn.className = "sos-tier-0 px-3 py-2 rounded-[20px] bg-gradient-to-r from-rose-600 to-red-600 text-white flex flex-col items-center justify-center gap-0.5 active:scale-90 transition shrink-0";
+                lbl.textContent = "SOS Help";
+            } else if (todayCount < 3) {
+                btn.className = "sos-tier-1 px-3 py-2 rounded-[20px] bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 text-white flex flex-col items-center justify-center gap-0.5 active:scale-90 transition border border-amber-300/50 shrink-0";
+                lbl.textContent = `SOS (${todayCount}x)`;
+            } else {
+                btn.className = "sos-tier-2 px-3 py-2 rounded-[20px] bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 text-white flex flex-col items-center justify-center gap-0.5 active:scale-90 transition border border-white/80 shrink-0";
+                lbl.textContent = `SOS (${todayCount}x!)`;
+            }
+        }
+
+        // =====================================================================
+        // 8. EXPORTABLE AURA SHARE CARD (PNG CANVAS GENERATOR)
+        // =====================================================================
+        function openShareCardModal(e) {
+            if (e) e.stopPropagation();
+            if (islandExpanded) toggleDynamicIsland();
+            triggerHaptic('heavy');
+            renderAuraShareCanvas();
+            const backdrop = document.getElementById('shareCardBackdrop');
+            const sheet = document.getElementById('shareCardSheet');
+            backdrop.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                backdrop.classList.remove('opacity-0');
+                sheet.classList.remove('translate-y-full');
+            });
+        }
+
+        function closeShareCardModal() {
+            triggerHaptic('tick');
+            const backdrop = document.getElementById('shareCardBackdrop');
+            const sheet = document.getElementById('shareCardSheet');
+            backdrop.classList.add('opacity-0');
+            sheet.classList.add('translate-y-full');
+            setTimeout(() => backdrop.classList.add('hidden'), 320);
+        }
+
+        function renderAuraShareCanvas() {
+            const canvas = document.getElementById('auraShareCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const tState = computeTemporalStatus();
+            const totalDays = tState.perpetualTotal || tState.survivedDays || 0;
+            const rank = getRankForDays(totalDays);
+            const totalXP = calculateTotalAuraXP(tState.survivedDays);
+            const legacyStats = getSurvivedNovembersStats(tState);
+
+            ctx.save();
+            ctx.textAlign = 'left';
+
+            ctx.fillStyle = '#050507';
+            ctx.fillRect(0, 0, 720, 900);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
+            for (let x = 24; x < 720; x += 28) {
+                for (let y = 24; y < 900; y += 28) {
+                    ctx.fillRect(x, y, 2, 2);
+                }
+            }
+
+            ctx.strokeStyle = state.relapsedOnDay ? 'rgba(244, 63, 94, 0.6)' : 'rgba(16, 185, 129, 0.55)';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(28, 28, 664, 844);
+
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 20px "JetBrains Mono", monospace';
+            ctx.fillText('NNN // OS 7.0 BIOMETRIC VAULT', 60, 82);
+
+            ctx.fillStyle = '#a1a1aa';
+            ctx.font = '15px "JetBrains Mono", monospace';
+            ctx.fillText(`CYCLE: ${tState.now.getFullYear()} // NOVEMBERS WON: ${legacyStats.count}`, 60, 112);
+
+            ctx.fillStyle = 'rgba(18, 18, 24, 0.92)';
+            ctx.fillRect(60, 145, 600, 250);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(60, 145, 600, 250);
+
+            ctx.fillStyle = '#a1a1aa';
+            ctx.font = 'bold 18px "JetBrains Mono", monospace';
+            ctx.fillText(state.relapsedOnDay ? 'STATUS: STREAK LOST' : 'ACTIVE DISCIPLINE STREAK', 92, 195);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 110px "Space Grotesk", sans-serif';
+            ctx.fillText(`${totalDays}`, 92, 315);
+
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 26px "JetBrains Mono", monospace';
+            ctx.fillText(`DAYS CLEAN • ${legacyStats.count} NNN CROWN${legacyStats.count === 1 ? '' : 'S'}`, 92, 362);
+
+            ctx.fillStyle = 'rgba(18, 18, 24, 0.92)';
+            ctx.fillRect(60, 425, 600, 185);
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.35)';
+            ctx.strokeRect(60, 425, 600, 185);
+
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 18px "JetBrains Mono", monospace';
+            ctx.fillText(`${rank.tier} // CURRENT RANK`, 92, 470);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 42px "Space Grotesk", sans-serif';
+            ctx.fillText(`${rank.name}`, 92, 528);
+
+            ctx.fillStyle = '#e4e4e7';
+            ctx.font = 'bold 24px "JetBrains Mono", monospace';
+            ctx.fillText(`TOTAL SCORE: ${totalXP.toLocaleString()} XP`, 92, 578);
+
+            ctx.fillStyle = '#a1a1aa';
+            ctx.font = 'bold 16px "JetBrains Mono", monospace';
+            ctx.fillText('30-DAY NOVEMBER PROGRESS:', 60, 655);
+
+            for (let i = 1; i <= 30; i++) {
+                const col = (i - 1) % 10;
+                const row = Math.floor((i - 1) / 10);
+                const bx = 60 + col * 61;
+                const by = 675 + row * 42;
+                const isDone = i <= tState.survivedDays && (!state.relapsedOnDay || i < state.relapsedOnDay);
+                ctx.fillStyle = isDone ? '#10b981' : 'rgba(255,255,255,0.08)';
+                ctx.fillRect(bx, by, 50, 30);
+            }
+
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#a1a1aa';
+            ctx.font = 'bold 14px "JetBrains Mono", monospace';
+            ctx.fillText('CREATED BY ABHINAV YADUVANSHI', 60, 842);
+
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 12.5px "JetBrains Mono", monospace';
+            ctx.fillText('UPI: abhiyaduvanshi1011@okhdfcbank', 660, 842);
+
+            ctx.restore();
+        }
+
+        function downloadAuraCardPNG() {
+            triggerHaptic('heavy');
+            const canvas = document.getElementById('auraShareCanvas');
+            if (!canvas) return;
+            const link = document.createElement('a');
+            link.download = `NNN-OS7-Aura-Card-Day-${selectedDay}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showMobileToast('Status Card saved as PNG!');
+        }
+
+        async function shareAuraCardNative() {
+            triggerHaptic('heavy');
+            const canvas = document.getElementById('auraShareCanvas');
+            if (!canvas) return;
+            try {
+                const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+                if (blob && navigator.share && navigator.canShare) {
+                    const file = new File([blob], 'nnn-os7-aura-card.png', { type: 'image/png' });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            title: 'NNN // OS 7.0 Status',
+                            text: 'Locked in on NNN // OS 7.0 (Created by Abhinav Yaduvanshi).',
+                            files: [file]
+                        });
+                        return;
+                    }
+                }
+            } catch (e) {}
+            downloadAuraCardPNG();
+        }
+
+        // =====================================================================
+        // 9. MILESTONE OVERDRIVE HUD
+        // =====================================================================
+        function checkAndFireMilestoneOverdrive(dayNum) {
+            const dayObj = NOVEMBER_DAYS.find(d => d.day === dayNum);
+            if (!dayObj || !dayObj.milestone || state.relapsedOnDay) return;
+
+            if (!state.celebratedMilestones.includes(dayNum)) {
+                state.celebratedMilestones.push(dayNum);
+                saveState();
+
+                const hud = document.getElementById('milestoneOverdriveHUD');
+                const card = document.getElementById('overdriveCard');
+                const rank = getRankForDays(dayNum);
+
+                document.getElementById('overdriveDayTitle').textContent = `DAY ${String(dayNum).padStart(2, '0')} // ${dayObj.vibe.toUpperCase()}`;
+                document.getElementById('overdriveRankSub').textContent = `RANK UNLOCKED: ${rank.name.toUpperCase()} ${rank.icon}`;
+                document.getElementById('overdriveXPGain').textContent = `+${dayObj.xp} XP`;
+
+                hud.classList.remove('hidden');
+                triggerHaptic('heavy');
+
+                requestAnimationFrame(() => {
+                    card.classList.remove('scale-95', 'opacity-0');
+                    card.classList.add('scale-100', 'opacity-100');
+                });
+
+                setTimeout(() => {
+                    card.classList.remove('scale-100', 'opacity-100');
+                    card.classList.add('scale-95', 'opacity-0');
+                    setTimeout(() => hud.classList.add('hidden'), 320);
+                }, 2500);
+            }
+        }
+
+        // =====================================================================
+        // 10. TOP STATUS BAR & CORE APP RENDERER
+        // =====================================================================
+        function toggleDynamicIsland() {
+            islandExpanded = !islandExpanded;
+            triggerHaptic('light');
+            const drawer = document.getElementById('diExpandedContent');
+            if (islandExpanded) {
+                drawer.classList.remove('hidden');
+            } else {
+                drawer.classList.add('hidden');
+            }
+        }
+
+        function switchMobileTab(tabName) {
+            state.activeTab = tabName;
+            triggerHaptic('tick');
+
+            const tStatus = computeTemporalStatus();
+            if (tStatus.phase === 'PRE_NOV' && tabName !== 'creator') {
+                showMobileToast("Unlocks automatically on Nov 1, 00:00.");
+                return;
+            }
+
+            ['status', 'matrix', 'ranks', 'creator'].forEach(t => {
+                const view = document.getElementById(`tabView_${t}`);
+                const btn = document.getElementById(`navBtn_${t}`);
+                if (!view || !btn) return;
+                if (t === tabName) {
+                    view.classList.remove('hidden');
+                    btn.className = "flex-1 py-2 rounded-[20px] flex flex-col items-center justify-center gap-0.5 bg-white text-black font-semibold transition active:scale-95";
+                } else {
+                    view.classList.add('hidden');
+                    btn.className = "flex-1 py-2 rounded-[20px] flex flex-col items-center justify-center gap-0.5 text-zinc-400 hover:text-white transition active:scale-95";
+                }
+            });
+        }
+
+        function logPerpetualDailyCheckin() {
+            const todayKey = new Date().toISOString().slice(0, 10);
+            if (state.lastPerpetualCheckin === todayKey) {
+                triggerHaptic('tick');
+                showMobileToast("Today is already logged!");
+                return;
+            }
+            state.lastPerpetualCheckin = todayKey;
+            state.decemberExtraDays = (state.decemberExtraDays || 0) + 1;
+            saveState();
+            triggerHaptic('heavy');
+            renderMobileApp();
+            showMobileToast(`+100 XP! Extra Streak: ${state.decemberExtraDays} Days.`);
+        }
+
+        function renderMobileApp() {
+            const tState = computeTemporalStatus();
+            const preScreen = document.getElementById('preNovScreen');
+            const activeScreen = document.getElementById('activeNovScreen');
+            const diText = document.getElementById('diStateText');
+            const diDot = document.getElementById('diPulseDot');
+            const diPing = document.getElementById('diPulsePing');
+            const legacyStats = getSurvivedNovembersStats(tState);
+
+            const shameLbl = document.getElementById('shameStateLabel');
+            if (shameLbl) {
+                shameLbl.textContent = state.showShameCounter ? 'SHOW' : 'HIDE';
+                shameLbl.className = state.showShameCounter ? 'text-emerald-400 font-bold' : 'text-zinc-500 font-bold';
+            }
+
+            updateSosButtonIntensity(tState.currentDay || 1);
+
+            if (tState.phase === 'PRE_NOV') {
+                preScreen.classList.remove('hidden');
+                activeScreen.classList.add('hidden');
+                const targetYear = tState.nextNovStart.getFullYear();
+                diText.textContent = `COUNTDOWN // NNN ${targetYear}`;
+                diDot.className = "relative inline-flex rounded-full h-2 w-2 bg-amber-400";
+                diPing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75";
+
+                document.getElementById('preNovTargetYearPill').textContent = `NNN ${targetYear} LOCKED`;
+                document.getElementById('preNovTargetDateTitle').textContent = `Nov 1, ${targetYear}`;
+                document.getElementById('preNovTotalStreakNum').textContent = tState.perpetualTotal;
+                const preLegTxt = document.getElementById('preNovLegacyCountText');
+                if (preLegTxt) {
+                    preLegTxt.textContent = `${legacyStats.count} November${legacyStats.count === 1 ? '' : 's'} Won`;
+                }
+
+                renderBiometricOathState();
+                updateHighFreqClocks();
+                lucide.createIcons();
+                return;
+            }
+
+            preScreen.classList.add('hidden');
+            activeScreen.classList.remove('hidden');
+
+            const decBanner = document.getElementById('decemberCarryBanner');
+            const isDecActive = tState.phase === 'POST_NOV' && !state.relapsedOnDay;
+            if (isDecActive) {
+                decBanner.classList.remove('hidden');
+                const nextYear = tState.nextNovStart.getFullYear();
+                const daysUntilNextNov = Math.ceil((tState.nextNovStart - tState.now) / 86400000);
+                document.getElementById('decCarryHeadline').textContent = `NOVEMBER WON // NEXT NNN (${nextYear}) IN ${daysUntilNextNov}D`;
+                document.getElementById('decCarrySub').textContent = `Total Streak: ${tState.perpetualTotal} Days (+${state.decemberExtraDays || 0} Bonus Days)`;
+            } else {
+                decBanner.classList.add('hidden');
+            }
+
+            const relBanner = document.getElementById('mobileRelapseBanner');
+            const relTitle = document.getElementById('mobileRelapseTitle');
+            const relGuardBtn = document.getElementById('relapseGuardBtn');
+            if (state.relapsedOnDay) {
+                diText.textContent = `STREAK LOST // DAY ${String(state.relapsedOnDay).padStart(2, '0')}`;
+                diDot.className = "relative inline-flex rounded-full h-2 w-2 bg-rose-500";
+                diPing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75";
+                relBanner.classList.remove('hidden');
+                relTitle.textContent = `💀 STREAK LOST ON DAY ${String(state.relapsedOnDay).padStart(2, '0')}`;
+                if (relGuardBtn) {
+                    relGuardBtn.disabled = true;
+                    relGuardBtn.className = "mt-2.5 w-full py-3 rounded-2xl font-mono text-xs font-bold uppercase tracking-wider bg-zinc-900 border border-rose-500/30 text-rose-400/60 opacity-60 cursor-not-allowed";
+                    document.getElementById('relapseBtnText').innerHTML = `<span>RELAPSE RECORDED // LOCKED</span>`;
+                }
+            } else {
+                diText.textContent = tState.phase === 'POST_NOV'
+                    ? `STREAK // ${tState.perpetualTotal} DAYS`
+                    : `DAY ${tState.currentDay} OF 30 // LOCKED IN`;
+                diDot.className = "relative inline-flex rounded-full h-2 w-2 bg-emerald-400";
+                diPing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+                relBanner.classList.add('hidden');
+            }
+
+            const shameStrip = document.getElementById('shameTelemetryStrip');
+            const lastSosTxt = getLastSosElapsedText();
+            if (state.showShameCounter && !isDecActive) {
+                shameStrip.classList.remove('hidden');
+                document.getElementById('almostFoldedCount').textContent = `${state.urgeDefeats || 0}`;
+                document.getElementById('weakHoursReadout').textContent = getWeakHoursWindow();
+                document.getElementById('topTriggerReadout').textContent = getTopWeakTrigger();
+            } else {
+                shameStrip.classList.add('hidden');
+            }
+            const matrixSosTag = document.getElementById('matrixLastSosTag');
+            if (matrixSosTag) matrixSosTag.textContent = lastSosTxt;
+
+            const survived = tState.survivedDays;
+            const displayStreak = tState.perpetualTotal > 30 ? tState.perpetualTotal : survived;
+            document.getElementById('mobStreakNum').textContent = displayStreak;
+            document.getElementById('mobStreakDenom').textContent = tState.perpetualTotal > 30 ? 'd+' : '/30';
+
+            const legMini = document.getElementById('nnnLegacyMiniBadge');
+            if (legMini) {
+                legMini.textContent = `${legacyStats.count} November${legacyStats.count === 1 ? '' : 's'} Won`;
+            }
+
+            const pct = Math.min(100, Math.round((survived / 30) * 100));
+            document.getElementById('mobStreakPct').textContent = `${pct}%`;
+            const circum = 113.1;
+            document.getElementById('mobStreakCircle').style.strokeDashoffset = circum - (pct / 100) * circum;
+
+            const totalXP = calculateTotalAuraXP(survived);
+            document.getElementById('mobAuraXP').textContent = `${totalXP.toLocaleString()} XP`;
+            document.getElementById('ladderTotalXP').textContent = `${totalXP.toLocaleString()} XP`;
+
+            const rank = getRankForDays(tState.perpetualTotal);
+            document.getElementById('mobRankTierPill').textContent = rank.tier;
+            document.getElementById('mobRankTitle').textContent = rank.name;
+
+            renderHeroTransmissionCard(tState);
+            renderDailyJournalBox();
+            renderMatrices(tState);
+            renderBlackboxJournalArchive(tState);
+            renderLegacyVaultCard(tState, legacyStats);
+            renderUrgePatternPanel();
+            renderRankLadder(tState.perpetualTotal);
+
+            updateHighFreqClocks();
+            lucide.createIcons();
+        }
+
+        function renderHeroTransmissionCard(tState) {
+            const info = NOVEMBER_DAYS.find(d => d.day === selectedDay) || NOVEMBER_DAYS[0];
+            const d = info.day;
+            const isToday = d === tState.currentDay && tState.phase === 'ACTIVE_NOV';
+            const isBroken = state.relapsedOnDay && d >= state.relapsedOnDay;
+            const questDone = state.completedQuests.includes(d);
+
+            document.getElementById('cardDayBadge').textContent = `NOV ${String(d).padStart(2, '0')}`;
+            const msPill = document.getElementById('cardMilestonePill');
+            if (info.milestone) msPill.classList.remove('hidden');
+            else msPill.classList.add('hidden');
+
+            const statusEl = document.getElementById('cardStatusText');
+            if (isBroken) {
+                statusEl.className = "font-mono text-[10px] text-rose-400 font-bold";
+                statusEl.textContent = "✕ STREAK LOST";
+            } else if (isToday) {
+                statusEl.className = "font-mono text-[10px] text-white font-bold";
+                statusEl.textContent = "● TODAY";
+            } else {
+                statusEl.className = "font-mono text-[10px] text-emerald-400 font-bold";
+                statusEl.textContent = "✓ SURVIVED";
+            }
+
+            document.getElementById('cardVibeTag').innerHTML = `Mood: <strong class="text-white">${info.vibe}</strong>`;
+            document.getElementById('cardHeadline').textContent = `Day ${d}: ${info.title}`;
+            document.getElementById('cardQuoteText').textContent = `"${info.quote}"`;
+            document.getElementById('cardDayXP').textContent = `+${info.xp} XP`;
+            document.getElementById('cardQuestDesc').textContent = info.quest;
+
+            const qBtn = document.getElementById('cardQuestBtn');
+            if (questDone) {
+                qBtn.className = "px-3.5 py-2 rounded-xl font-mono text-[10px] font-bold uppercase shrink-0 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 active:scale-90 transition";
+                qBtn.textContent = "✓ DONE";
+            } else {
+                qBtn.className = "px-3.5 py-2 rounded-xl font-mono text-[10px] font-bold uppercase shrink-0 bg-white text-black active:scale-90 transition";
+                qBtn.textContent = "CLAIM +50";
+            }
+        }
+
+        function renderDailyJournalBox() {
+            const dStr = String(selectedDay).padStart(2, '0');
+            document.getElementById('journalDayNum').textContent = dStr;
+            const input = document.getElementById('dailyJournalInput');
+            const saved = state.journals[String(selectedDay)] || '';
+            if (document.activeElement !== input) {
+                input.value = saved;
+            }
+            input.placeholder = `Day ${dStr} note: Today I almost folded because...`;
+            document.getElementById('journalSavedBadge').textContent = saved ? '✓ Saved' : 'Empty';
+        }
+
+        function saveDailyJournal() {
+            const input = document.getElementById('dailyJournalInput');
+            const val = (input.value || '').trim();
+            if (val) {
+                state.journals[String(selectedDay)] = val;
+            } else {
+                delete state.journals[String(selectedDay)];
+            }
+            saveState();
+            triggerHaptic('light');
+            renderMobileApp();
+            showMobileToast(val ? `Day ${selectedDay} note saved.` : `Day ${selectedDay} note cleared.`);
+        }
+
+        function renderBlackboxJournalArchive(tState) {
+            const listEl = document.getElementById('matrixJournalArchiveList');
+            const countBadge = document.getElementById('matrixJournalCountBadge');
+            if (!listEl || !countBadge) return;
+
+            listEl.innerHTML = '';
+            const entries = Object.entries(state.journals || {})
+                .filter(([_, txt]) => txt && String(txt).trim().length > 0)
+                .sort((a, b) => Number(b[0]) - Number(a[0]));
+
+            countBadge.textContent = `${entries.length} Saved`;
+
+            if (entries.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-xs text-zinc-400 py-1">
+                        No daily notes saved yet. Write a note on the Today tab and it will appear here.
+                    </div>
+                `;
+                return;
+            }
+
+            entries.forEach(([dayKey, text]) => {
+                const dNum = Number(dayKey);
+                const item = document.createElement('div');
+                item.onclick = () => {
+                    if (dNum <= tState.currentDay) {
+                        selectedDay = dNum;
+                        triggerHaptic('tick');
+                        renderMobileApp();
+                        switchMobileTab('status');
+                    }
+                };
+                item.className = "p-2.5 rounded-xl bg-black/55 border border-white/10 flex items-start justify-between gap-2 cursor-pointer active:scale-[0.99] transition";
+                item.innerHTML = `
+                    <div class="min-w-0">
+                        <span class="font-mono text-[9.5px] text-emerald-400 font-bold uppercase">Nov ${String(dNum).padStart(2, '0')}</span>
+                        <p class="text-xs text-zinc-200 mt-0.5 break-words leading-snug">"${text.replace(/</g, '&lt;')}"</p>
+                    </div>
+                    <span class="font-mono text-[9px] text-zinc-500 shrink-0">View →</span>
+                `;
+                listEl.appendChild(item);
+            });
+        }
+
+        function renderLegacyVaultCard(tState, legacyStats) {
+            const badge = document.getElementById('legacyNovCountBadge');
+            const summary = document.getElementById('legacyNovSummaryText');
+            const pills = document.getElementById('legacyYearsPills');
+            if (!badge || !summary || !pills) return;
+
+            badge.textContent = `${legacyStats.count} Won`;
+            pills.innerHTML = '';
+
+            if (legacyStats.count === 0) {
+                const daysRemaining = Math.max(0, 30 - tState.survivedDays);
+                summary.innerHTML = state.relapsedOnDay
+                    ? `Your ${tState.now.getFullYear()} streak ended on Day ${state.relapsedOnDay}. Full Novembers won: <strong class="text-white">0</strong>.`
+                    : `You have won <strong class="text-white">0</strong> full Novembers so far (${tState.survivedDays}/30 days completed in ${tState.now.getFullYear()} — ${daysRemaining} days left).`;
+            } else {
+                summary.innerHTML = `You have conquered <strong class="text-amber-300 font-mono">${legacyStats.count}</strong> full No Nut November${legacyStats.count === 1 ? '' : 's'}!`;
+            }
+
+            legacyStats.wonYears.forEach(yr => {
+                const p = document.createElement('span');
+                p.className = "px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 font-mono text-[9.5px] text-amber-200 font-bold";
+                p.textContent = `👑 NNN ${yr} WON (30/30)`;
+                pills.appendChild(p);
+            });
+
+            legacyStats.failedYears.forEach(f => {
+                const p = document.createElement('span');
+                p.className = "px-2.5 py-1 rounded-lg bg-rose-950/40 border border-rose-500/30 font-mono text-[9.5px] text-rose-300";
+                p.textContent = `💀 NNN ${f.year} LOST (DAY ${f.day})`;
+                pills.appendChild(p);
+            });
+        }
+
+        function renderUrgePatternPanel() {
+            const summary = document.getElementById('urgePatternSummary');
+            const list = document.getElementById('urgeHistoryList');
+            list.innerHTML = '';
+
+            if (!state.urgeLogs || state.urgeLogs.length === 0) {
+                summary.textContent = "No SOS urges logged yet. Tap SOS Help whenever an urge hits to track your weak hours and triggers.";
+                return;
+            }
+
+            const weakWin = getWeakHoursWindow();
+            const topTrig = getTopWeakTrigger();
+            summary.innerHTML = `Danger Time: <strong class="text-amber-300 font-mono">${weakWin}</strong> • Top Trigger: <strong class="text-cyan-300 font-mono">${topTrig}</strong> (${state.urgeLogs.length} urges defeated).`;
+
+            state.urgeLogs.slice(-8).reverse().forEach(item => {
+                const badge = document.createElement('span');
+                badge.className = "px-2 py-1 rounded-lg bg-black/60 border border-white/10 font-mono text-[9px] text-zinc-300";
+                badge.textContent = `Nov ${String(item.day).padStart(2, '0')} @ ${String(item.hour).padStart(2, '0')}:00 (${item.trigger || 'Urge'})`;
+                list.appendChild(badge);
+            });
+        }
+
+        function stepSelectedDay(delta) {
+            const tState = computeTemporalStatus();
+            const target = selectedDay + delta;
+            if (target < 1) {
+                triggerHaptic('tick');
+                return;
+            }
+            if (target > tState.currentDay) {
+                triggerHaptic('alarm');
+                showMobileToast(`Day ${target} unlocks at midnight!`);
+                return;
+            }
+            selectedDay = target;
+            triggerHaptic('tick');
+            renderMobileApp();
+        }
+
+        function renderMatrices(tState) {
+            const full = document.getElementById('fullMatrixGrid');
+            full.innerHTML = '';
+
+            NOVEMBER_DAYS.forEach(item => {
+                const d = item.day;
+                const isFuture = d > tState.currentDay;
+                const isToday = d === tState.currentDay && tState.phase === 'ACTIVE_NOV';
+                const isRelapsed = state.relapsedOnDay && d >= state.relapsedOnDay && !isFuture;
+                const isSurvived = !isFuture && (!state.relapsedOnDay || d < state.relapsedOnDay);
+                const isSelected = selectedDay === d;
+                const hasJournal = Boolean(state.journals && state.journals[String(d)] && state.journals[String(d)].trim());
+                const hasQuest = Array.isArray(state.completedQuests) && state.completedQuests.includes(d);
+
+                let stateClass = 'node-locked';
+                if (isRelapsed) stateClass = 'node-relapsed';
+                else if (isToday && !state.relapsedOnDay) stateClass = 'node-today';
+                else if (isSurvived && item.milestone) stateClass = 'node-milestone-w';
+                else if (isSurvived) stateClass = 'node-survived';
+
+                const ringClass = isSelected ? 'ring-2 ring-white' : '';
+
+                const fBtn = document.createElement('button');
+                fBtn.className = `node-btn h-14 rounded-2xl border font-mono text-xs font-bold flex flex-col items-center justify-between p-2 tabular-nums ${stateClass} ${ringClass}`;
+                fBtn.innerHTML = `
+                    <div class="w-full flex items-center justify-between text-[9px] opacity-85">
+                        <span>D${String(d).padStart(2, '0')}</span>
+                        <span class="flex items-center gap-0.5">
+                            ${hasJournal ? '<span title="Note Saved">📝</span>' : ''}
+                            ${hasQuest ? '<span class="text-emerald-300" title="Task Done">⚡</span>' : ''}
+                            ${item.milestone ? '<span class="text-amber-300 font-bold">★</span>' : ''}
+                        </span>
+                    </div>
+                    <div class="text-xs font-bold">${isFuture ? '🔒' : (isRelapsed ? '✕' : (item.milestone ? '★ W' : '✓'))}</div>
+                `;
+                fBtn.onclick = () => {
+                    handleNodeTap(d, isFuture, fBtn);
+                    if (!isFuture) switchMobileTab('status');
+                };
+                full.appendChild(fBtn);
+            });
+        }
+
+        function handleNodeTap(dayNum, isFuture, btnEl) {
+            if (isFuture) {
+                triggerHaptic('alarm');
+                btnEl.classList.remove('shake-error');
+                void btnEl.offsetWidth;
+                btnEl.classList.add('shake-error');
+                showMobileToast(`Day ${dayNum} is locked until Nov ${dayNum}!`);
+                return;
+            }
+            selectedDay = dayNum;
+            triggerHaptic('light');
+            checkAndFireMilestoneOverdrive(dayNum);
+            renderMobileApp();
+        }
+
+        function renderRankLadder(totalDays) {
+            const container = document.getElementById('mobileRankLadder');
+            container.innerHTML = '';
+
+            AURA_RANKS.forEach(r => {
+                const unlocked = totalDays >= r.minDays;
+                const row = document.createElement('div');
+                row.className = `p-3 rounded-2xl border flex items-center justify-between transition ${
+                    unlocked
+                        ? 'bg-emerald-500/10 border-emerald-500/35 text-white'
+                        : 'bg-black/40 border-white/[0.06] text-zinc-500'
+                }`;
+                row.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-black/60 border border-white/10 flex items-center justify-center text-base">
+                            ${r.icon}
+                        </div>
+                        <div>
+                            <div class="font-mono text-[9px] uppercase ${unlocked ? 'text-emerald-400' : 'text-zinc-500'}">
+                                ${r.tier} • Day ${r.minDays}+
+                            </div>
+                            <div class="font-display text-sm font-bold">${r.name}</div>
+                        </div>
+                    </div>
+                    <span class="font-mono text-[9.5px] px-2.5 py-1 rounded-lg ${
+                        unlocked ? 'bg-emerald-500 text-black font-bold' : 'bg-white/[0.04] text-zinc-500'
+                    }">
+                        ${unlocked ? 'UNLOCKED' : 'LOCKED'}
+                    </span>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function toggleMobileQuest() {
+            if (state.relapsedOnDay && selectedDay >= state.relapsedOnDay) {
+                triggerHaptic('alarm');
+                showMobileToast("Streak is lost. Tasks locked.");
+                return;
+            }
+            const idx = state.completedQuests.indexOf(selectedDay);
+            if (idx > -1) {
+                state.completedQuests.splice(idx, 1);
+                triggerHaptic('tick');
+                showMobileToast(`Day ${selectedDay} task unmarked.`);
+            } else {
+                state.completedQuests.push(selectedDay);
+                triggerHaptic('heavy');
+                showMobileToast(`+50 XP! Daily task completed.`);
+                checkAndFireMilestoneOverdrive(selectedDay);
+            }
+            saveState();
+            renderMobileApp();
+        }
+
+        function logDecemberCarryDay() {
+            logPerpetualDailyCheckin();
+        }
+
+        // =====================================================================
+        // 11. PRE-NOVEMBER PLEDGE SCANNER
+        // =====================================================================
+        let bioTimer = null;
+        let bioProgress = 0;
+
+        function renderBiometricOathState() {
+            const circle = document.getElementById('bioProgressCircle');
+            const label = document.getElementById('bioActionLabel');
+            const sub = document.getElementById('oathStatusSub');
+            const circum = 219.91;
+
+            if (state.pledgedPreNov) {
+                circle.style.strokeDashoffset = '0';
+                label.textContent = "✓ PLEDGE LOCKED (+150 XP)";
+                label.className = "mt-2 font-mono text-[10.5px] font-bold uppercase text-emerald-400";
+                sub.textContent = "Your +150 XP pledge bonus is locked in for November 1st.";
+            } else {
+                circle.style.strokeDashoffset = circum;
+                label.textContent = "HOLD 1.5S TO PLEDGE";
+                label.className = "mt-2 font-mono text-[10.5px] font-bold uppercase text-zinc-300";
+            }
+        }
+
+        function startBiometricScan(e) {
+            if (e) e.preventDefault();
+            if (state.pledgedPreNov) {
+                triggerHaptic('light');
+                showMobileToast("Pledge already locked in!");
+                return;
+            }
+            clearInterval(bioTimer);
+            bioProgress = 0;
+            const circle = document.getElementById('bioProgressCircle');
+            const label = document.getElementById('bioActionLabel');
+            const circum = 219.91;
+
+            label.textContent = "HOLDING...";
+            triggerHaptic('tick');
+
+            bioTimer = setInterval(() => {
+                bioProgress += 5;
+                const offset = circum - (bioProgress / 100) * circum;
+                circle.style.strokeDashoffset = offset;
+                if (bioProgress % 25 === 0) triggerHaptic('tick');
+
+                if (bioProgress >= 100) {
+                    clearInterval(bioTimer);
+                    state.pledgedPreNov = true;
+                    saveState();
+                    triggerHaptic('heavy');
+                    renderBiometricOathState();
+                    showMobileToast("Pledge Signed! +150 XP armed.");
+                }
+            }, 55);
+        }
+
+        function cancelBiometricScan() {
+            if (state.pledgedPreNov) return;
+            clearInterval(bioTimer);
+            bioProgress = 0;
+            renderBiometricOathState();
+        }
+
+        // =====================================================================
+        // 12. PERMANENT RELAPSE BUTTON (2.0S HOLD)
+        // =====================================================================
+        let relapseTimer = null;
+        let relapsePct = 0;
+
+        function startRelapseHold(e) {
+            if (e) e.preventDefault();
+            if (state.relapsedOnDay) return;
+            const tState = computeTemporalStatus();
+            if (tState.phase === 'PRE_NOV') return;
+
+            clearInterval(relapseTimer);
+            relapsePct = 0;
+            const fill = document.getElementById('relapseFillBar');
+            const vig = document.getElementById('relapseVignette');
+            const txt = document.getElementById('relapseBtnText');
+
+            vig.style.opacity = '1';
+            txt.textContent = "CONFIRMING RELAPSE...";
+            triggerHaptic('alarm');
+
+            relapseTimer = setInterval(() => {
+                relapsePct += 5;
+                fill.style.width = `${relapsePct}%`;
+                if (relapsePct % 20 === 0) triggerHaptic('heartbeat');
+
+                if (relapsePct >= 100) {
+                    clearInterval(relapseTimer);
+                    vig.style.opacity = '0';
+                    fill.style.width = '0%';
+                    state.relapsedOnDay = tState.currentDay || 1;
+                    state.decemberExtraDays = 0;
+                    saveState();
+                    triggerHaptic('alarm');
+                    renderMobileApp();
+                    switchMobileTab('status');
+                    showMobileToast(`💀 Streak lost on Day ${state.relapsedOnDay}.`);
+                }
+            }, 90);
+        }
+
+        function cancelRelapseHold() {
+            if (state.relapsedOnDay) return;
+            clearInterval(relapseTimer);
+            relapsePct = 0;
+            const fill = document.getElementById('relapseFillBar');
+            const vig = document.getElementById('relapseVignette');
+            const txt = document.getElementById('relapseBtnText');
+            if (fill) fill.style.width = '0%';
+            if (vig) vig.style.opacity = '0';
+            if (txt) txt.innerHTML = `<i data-lucide="flame-kindling" class="w-4 h-4"></i><span>HOLD 2.0S TO REPORT RELAPSE</span>`;
+            lucide.createIcons();
+        }
+
+        // =====================================================================
+        // 13. SOS URGE HELPER SHEET
+        // =====================================================================
+        let sosBreathInterval = null;
+        let kineticReps = 0;
+        let sosQuoteIdx = 0;
+
+        function openSOSSheet() {
+            triggerHaptic('alarm');
+            const backdrop = document.getElementById('sosBackdrop');
+            const sheet = document.getElementById('sosBottomSheet');
+            backdrop.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                backdrop.classList.remove('opacity-0');
+                sheet.classList.remove('translate-y-full');
+            });
+            startSOSBreathingLoop();
+        }
+
+        function closeSOSSheet() {
+            triggerHaptic('tick');
+            const backdrop = document.getElementById('sosBackdrop');
+            const sheet = document.getElementById('sosBottomSheet');
+            backdrop.classList.add('opacity-0');
+            sheet.classList.add('translate-y-full');
+            setTimeout(() => backdrop.classList.add('hidden'), 320);
+            clearInterval(sosBreathInterval);
+        }
+
+        function nextSOSQuote() {
+            sosQuoteIdx = (sosQuoteIdx + 1) % SOS_QUOTES.length;
+            document.getElementById('sosQuoteBox').textContent = `"${SOS_QUOTES[sosQuoteIdx]}"`;
+            triggerHaptic('light');
+        }
+
+        function switchSOSMode(mode) {
+            triggerHaptic('tick');
+            const bTab = document.getElementById('sosTab_breath');
+            const kTab = document.getElementById('sosTab_kinetic');
+            const bPanel = document.getElementById('sosPanel_breath');
+            const kPanel = document.getElementById('sosPanel_kinetic');
+
+            if (mode === 'breath') {
+                bTab.className = "py-1.5 rounded-xl bg-white text-black font-bold uppercase transition";
+                kTab.className = "py-1.5 rounded-xl text-zinc-300 font-bold uppercase transition";
+                bPanel.classList.remove('hidden');
+                kPanel.classList.add('hidden');
+                startSOSBreathingLoop();
+            } else {
+                kTab.className = "py-1.5 rounded-xl bg-white text-black font-bold uppercase transition";
+                bTab.className = "py-1.5 rounded-xl text-zinc-300 font-bold uppercase transition";
+                kPanel.classList.remove('hidden');
+                bPanel.classList.add('hidden');
+                clearInterval(sosBreathInterval);
+                kineticReps = 0;
+                document.getElementById('kineticRepCount').textContent = `0/20`;
+            }
+        }
+
+        function startSOSBreathingLoop() {
+            clearInterval(sosBreathInterval);
+            const orb = document.getElementById('sosInnerOrb');
+            const ring = document.getElementById('sosOuterRing');
+            const lbl = document.getElementById('sosBreathLabel');
+            const sec = document.getElementById('sosBreathSec');
+
+            const phases = [
+                { name: 'INHALE', scale: 'scale-125', ringScale: 'scale-110' },
+                { name: 'HOLD',   scale: 'scale-125', ringScale: 'scale-125' },
+                { name: 'EXHALE', scale: 'scale-90',  ringScale: 'scale-95'  },
+                { name: 'HOLD',   scale: 'scale-90',  ringScale: 'scale-90'  }
+            ];
+            let pIdx = 0;
+
+            const runCycle = () => {
+                const p = phases[pIdx];
+                lbl.textContent = p.name;
+                sec.textContent = '4.0s';
+                orb.className = `w-16 h-16 px-2 py-2 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex flex-col items-center justify-center transition-all duration-[4000ms] ease-in-out ${p.scale}`;
+                ring.className = `absolute inset-0 rounded-full border border-emerald-400/35 transition-all duration-[4000ms] ease-in-out ${p.ringScale}`;
+                triggerHaptic('heartbeat');
+                pIdx = (pIdx + 1) % phases.length;
+            };
+            runCycle();
+            sosBreathInterval = setInterval(runCycle, 4000);
+        }
+
+        function logKineticRep() {
+            kineticReps = Math.min(20, kineticReps + 1);
+            document.getElementById('kineticRepCount').textContent = `${kineticReps}/20`;
+            triggerHaptic(kineticReps === 20 ? 'heavy' : 'light');
+            if (kineticReps === 20) {
+                showMobileToast("20 pushups done! Urge defeated.");
+            }
+        }
+
+        function completeSOSProtocol() {
+            const now = new Date();
+            const tState = computeTemporalStatus();
+            state.urgeDefeats = (state.urgeDefeats || 0) + 1;
+            state.urgeLogs = state.urgeLogs || [];
+            state.urgeLogs.push({
+                day: tState.currentDay || 1,
+                hour: now.getHours(),
+                trigger: selectedUrgeTrigger || 'Late Scroll',
+                timestamp: Date.now()
+            });
+            saveState();
+            closeSOSSheet();
+            triggerHaptic('heavy');
+            renderMobileApp();
+            showMobileToast(`Urge defeated! +25 XP added.`);
+        }
+
+        // =====================================================================
+        // 14. SWIPE GESTURES & LIVE CLOCK LOOP
+        // =====================================================================
+        function initHeroSwipeGestures() {
+            const card = document.getElementById('gyroHeroCard');
+            let startX = 0;
+            card.addEventListener('touchstart', (e) => {
+                startX = e.changedTouches[0].screenX;
+            }, { passive: true });
+            card.addEventListener('touchend', (e) => {
+                const endX = e.changedTouches[0].screenX;
+                const diff = endX - startX;
+                if (Math.abs(diff) > 48) {
+                    if (diff < 0) stepSelectedDay(1);
+                    else stepSelectedDay(-1);
+                }
+            }, { passive: true });
+        }
+
+        function updateHighFreqClocks() {
+            const tState = computeTemporalStatus();
+            const now = tState.now;
+
+            if (tState.phase === 'ACTIVE_NOV' && lastObservedCalendarDay !== null && tState.currentDay !== lastObservedCalendarDay) {
+                lastObservedCalendarDay = tState.currentDay;
+                selectedDay = tState.currentDay;
+                renderMobileApp();
+                checkAndFireMilestoneOverdrive(selectedDay);
+                showMobileToast(`Midnight passed: Day ${selectedDay} unlocked!`);
+            } else if (lastObservedCalendarDay === null) {
+                lastObservedCalendarDay = tState.currentDay;
+            }
+
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const ss = String(now.getSeconds()).padStart(2, '0');
+            const subReadout = document.getElementById('liveClockSubReadout');
+            if (subReadout) subReadout.textContent = `TIME: ${hh}:${mm}:${ss}`;
+
+            if (tState.phase === 'PRE_NOV') {
+                const diff = Math.max(0, tState.novStart - now);
+                const d = Math.floor(diff / 86400000);
+                const h = Math.floor((diff % 86400000) / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                const ms = Math.floor((diff % 1000) / 10);
+
+                document.getElementById('preDays').textContent = String(d).padStart(2, '0');
+                document.getElementById('preHours').textContent = String(h).padStart(2, '0');
+                document.getElementById('preMins').textContent = String(m).padStart(2, '0');
+                document.getElementById('preSecs').textContent = String(s).padStart(2, '0');
+                document.getElementById('preMillis').textContent = `.${String(ms).padStart(2, '0')}s`;
+            } else {
+                const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+                const rem = Math.max(0, endOfDay - now);
+                const rh = String(Math.floor(rem / 3600000)).padStart(2, '0');
+                const rm = String(Math.floor((rem % 3600000) / 60000)).padStart(2, '0');
+                const rs = String(Math.floor((rem % 60000) / 1000)).padStart(2, '0');
+
+                document.getElementById('cycleDayLabel').textContent = tState.phase === 'POST_NOV'
+                    ? `Bonus Streak (${tState.dayPct.toFixed(0)}%)`
+                    : `Day ${tState.currentDay} Progress (${tState.dayPct.toFixed(0)}%)`;
+                document.getElementById('cycleNextTimer').textContent = `Next Day in ${rh}:${rm}:${rs}`;
+                document.getElementById('cycleProgressBar').style.width = `${tState.dayPct.toFixed(2)}%`;
+            }
+        }
+
+        let toastTimeout = null;
+        function showMobileToast(msg) {
+            const toast = document.getElementById('mobileToast');
+            document.getElementById('mobileToastText').textContent = msg;
+            toast.classList.remove('opacity-0', '-translate-y-2');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('opacity-0', '-translate-y-2');
+            }, 2500);
+        }
+
+        // =====================================================================
+        // 15. INITIALIZATION
+        // =====================================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            const initStatus = computeTemporalStatus();
+            selectedDay = initStatus.currentDay || 1;
+            lastObservedCalendarDay = initStatus.currentDay;
+
+            generateErrorProofQR('upiQrMainContainer');
+            generateErrorProofQR('upiQrModalContainer');
+
+            renderMobileApp();
+            initTouchParallaxOnly();
+            initHeroSwipeGestures();
+            setInterval(updateHighFreqClocks, 90);
+        });
+    </script>
+</body>
+</html>
